@@ -1,150 +1,101 @@
 (ns eulalie.sign
   (:require [eulalie.util :refer :all]
+            [eulalie.sign-util :refer :all]
             [clojure.string :as string]
             [cemerick.url    :as url]
+            [clojure.set     :refer [rename-keys]]
+            [clojure.tools.logging :as log]
             [digest])
-  (:import [org.joda.time.format
-            DateTimeFormatter
-            DateTimeFormat]))
+  (:import [java.util Date]
+           [javax.crypto Mac]
+           [javax.crypto.spec SecretKeySpec]
+           [com.amazonaws AmazonClientException]
+           [com.amazonaws.auth SigningAlgorithm]
+           [com.amazonaws.util BinaryUtils]))
 
-(let [fmt (-> (DateTimeFormat/forPattern "yyyyMMdd") .withZoneUTC)]
-  (def date-formatter #(.print fmt %)))
+(def date-formatter (make-date-formatter "yyyyMMdd"))
+(def time-formatter (make-date-formatter "yyyyMMdd'T'HHmmss'Z'"))
 
-(let [fmt (-> (DateTimeFormat/forPattern "yyyyMMdd'T'HHmmss'Z'")
-              .withZoneUTC)]
-  (def time-formatter #(.print fmt %)))
-
-(let [trim (fn-some-> string/trim)]
-  (def sanitize-creds
-    (map-rewriter
-     {:access-key trim
-      :secret-key trim
-      :token      trim})))
-
-(defn add-header [r k v]
-  (update-in r [:headers] (fn-> (assoc k v))))
-
-(defn add-headers [r m]
-  (update-in r [:headers] (fn-> (merge m))))
-
-(defn default-port? [{:keys [protocol port]}]
-  (or (and (= protocol "http")  (= port 80))
-      (and (= protocol "https") (= port 443))))
-
-(defn host-header [{{:keys [host port] :as endpoint} :endpoint}]
-  (if (default-port? endpoint)
-    host
-    (str host ":" port)))
+(def KEY-PREFIX "AWS4")
+(def MAGIC-SUFFIX "aws4_request")
+(def ALGORITHM "AWS4-HMAC-SHA256")
 
 (defn signature-date [offset-secs]
-  (-> (System/currentTimeMillis.)
-      (- (* offset-secs 1000))
+  (-> (System/currentTimeMillis)
+      ^Long (- (* offset-secs 1000))
       Date.
       .getTime))
-
-(def value-separator "/")
-
-(defn join-values [& rest]
-  (string/join value-separator rest))
-
-(defn get-or-calc-region [host {:keys [region-name service-name]}]
-  (or region-name
-      (AwsHostNameUtils/parseRegionName
-       ^String host ^String service-name)))
-
-(def terminator "aws4_request")
 
 (defn get-scope [{:keys [host]} date overrides]
   (let [region-name (get-or-calc-region host overrides)
         date-stamp (date-formatter date)
         {:keys [region-name service-name]} overrides]
-    (join-values date-stamp region-name service-name terminator)))
-
-(def strip-down-header
-  (fn-some-> string/lower-case (string/replace #"\s+" " ")))
-
-(defn canonical-header [[k v]]
-  (let [h [(strip-down-header k) ":"]]
-    (if v
-      (conj h (strip-down-header v))
-      v)))
-
-(def canonical-headers
-  (fn->>
-   (into (sorted-map))
-   (map (fn->> canonical-header (apply str)))
-   (string/join "\n")))
-
-(def header-names
-  (fn->>
-   (into (sorted-map))
-   keys
-   (map strip-down-header)
-   (string/join ";")))
+    (slash-join date-stamp region-name service-name MAGIC-SUFFIX)))
 
 (defn canonical-request
   [{:keys [method endpoint query-payload? headers]} hash]
   (let [{:keys [path query]} endpoint
         query (when-not query-payload?
-                (some-> query url/map->query))]
-    (string/join
-     "\n"
-     [(-> method name string/upper-case)
-      path
+                (some-> query url/map->query))
+        [canon-headers canon-headers-s] (canonical-headers headers)]
+    [canon-headers
+     (newline-join
+      (-> method name string/upper-case)
+      (if (empty? path) "/" path)
       query
-      (canonical-headers headers) nil
-      (header-names headers)
-      hash])))
+      canon-headers-s
+      nil
+      (string/join ";" canon-headers)
+      hash)]))
 
-(defn signable-string [date alg scope canon-req]
-  (string/join
-   "\n"
-   [alg (time-formatter date) scope (digest/sha-256 canon-req)]))
+(defn signable-string [date scope canon-req]
+  (newline-join
+   ALGORITHM (time-formatter date) scope (digest/sha-256 canon-req)))
+
+(defn sign [s key alg]
+  (try
+    (.doFinal
+     (doto (Mac/getInstance alg)
+       (.init (SecretKeySpec. key alg)))
+     s)
+    (catch Exception e
+      (throw
+       (AmazonClientException.
+        (str "Unable to calculate a request signature " (.getMessage e)) e)))))
 
 (defn compute-signature
-  [{{:keys [host]} :endpoint :as r} date alg scope hash creds overrides]
-  (let [region-name (get-or-calc-region host overrides)
-        {:keys [service-name]} overrides
-        canon-req (canonical-request r hash)
-        signable  (signable-string date alg scope canon-req)
-        k-signing (->> (str "AWS4" (:secret-key creds))
-                       (sign (date-formatter date))
-                       (sign region-name)
-                       (sign service-name)
-                       (sign terminator))]
-    {:date  date
-     :scope scope
-     :key   k-signing
-     :signature (sign signable k-signing)}))
+  [{:keys [endpoint] :as r} date scope hash creds overrides]
+  (let [[headers canon-req] (canonical-request r hash)
+        alg       (.toString SigningAlgorithm/HmacSHA256)
+        sign*     (fn [^String s k] (sign (.getBytes s) k alg))
+        signature (->> (str KEY-PREFIX (:secret-key creds))
+                       .getBytes
+                       (sign* (date-formatter date))
+                       (sign* (get-or-calc-region (:host endpoint) overrides))
+                       (sign* (:service-name overrides))
+                       (sign* MAGIC-SUFFIX)
+                       (sign* (signable-string date scope canon-req)))]
+    (log/debug canon-req)
+    
+    [headers (BinaryUtils/toHex signature)]))
 
-(def algorithm "AWS4-HMAC-SHA256")
-
-(defn make-header-value [v params]
-  (str v (some->>
-          params
-          (map (fn->> (string/join "=")))
-          (string/join ", ")
-          not-empty
-          (str " "))))
-
-(defn aws4-sign [{:keys [time-offset endpoint body] :as r} creds overrides]
+(defn aws4-sign [{:keys [time-offset endpoint body date] :as r} creds overrides]
   (let [{:keys [token access-key] :as creds} (sanitize-creds creds)
-        date  (signature-date time-offset)
-        hash  (digest-sha256 body)
-        r     (add-headers
-               (merge
-                {:x-amz-date (time-formatter date)
-                 :x-amz-content-sha256 hash
-                 :host (host-header r)}
-                (when token
-                  {:x-amz-security-token token})))
+        date    (or date (signature-date (or time-offset 0)))
+        hash    (digest/sha-256 body)
+        headers (merge
+                 {:x-amz-date (time-formatter date)
+                  :host (host-header endpoint)}
+                 (when token
+                   {:x-amz-security-token token}))
+        r       (-> r
+                    (add-headers headers))
         scope (get-scope endpoint date overrides)
-
-        {:keys [signature]}
-        (compute-signature r date algorithm scope hash creds overrides)
-        auth (make-header-value
-              algorithm
-              {"Credential" (join-values access-key scope)
-               "SignedHeaders" (-> r :headers header-names)
-               "Signature" signature})]
-    (add-header r :authorization auth)))
+        [header-names signature]  (compute-signature r date scope hash creds overrides)
+        auth-params {"Credential" (slash-join access-key scope)
+                     "SignedHeaders" (string/join ";" header-names)
+                     "Signature" signature}]
+    (add-headers
+     r
+     {:authorization (make-header-value ALGORITHM auth-params)
+      :x-amz-content-sha256 hash})))
