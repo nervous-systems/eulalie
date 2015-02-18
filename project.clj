@@ -31,17 +31,19 @@
   ;; There's probably a simpler way to do this - we don't want
   ;; TestableAWS4Signer to be compiled unless we specify, because
   ;; it depends on the Amazon AWS client lib
-  :profiles {:dev
+  :profiles {:test
              {:dependencies
               [[com.amazonaws/aws-java-sdk "1.9.3"
                 :exclusions [joda-time
-                             commons-logging]]]
+                             commons-logging]]
+               [org.slf4j/jcl-over-slf4j   "1.7.7"]]
               :source-paths ["src" "test"]
               :aot [eulalie.TestableAWS4Signer]}
              :user
              {:dependencies
               [[com.amazonaws/aws-java-sdk "1.9.3"
                 :exclusions [joda-time
-                             commons-logging]]]}
+                             commons-logging]]
+               [org.slf4j/jcl-over-slf4j   "1.7.7"]]}
              :source-paths ["src" "test"]
              :aot [eulalie.TestableAWS4Signer]})
