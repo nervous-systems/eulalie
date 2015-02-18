@@ -8,7 +8,7 @@ More services to come.
 
 ```clojure
 (eulalie/issue-request!
-  dynamo/service
+  eulalie.dynamo/service
   {:access-key ... :secret-key ...}
   {:target :describe-table
    :content {:table-name ...}})

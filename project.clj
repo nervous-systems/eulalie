@@ -1,9 +1,9 @@
 (defproject io.nervous/eulalie "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+  :description "Asynchronous, pure-Clojure AWS client"
+  :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
-  :aot [eulalie.TestableAWS4Signer]
   :global-vars {*warn-on-reflection* true}
+  :source-paths ["src"]
   :dependencies
   [[org.clojure/clojure        "1.6.0"]
    [org.clojure/core.async     "0.1.346.0-17112a-alpha"]
@@ -27,13 +27,20 @@
    [digest                     "1.4.4"]
    [clj-time                   "0.9.0"]
    [joda-time                  "2.5"]]
+  ;; There's probably a simpler way to do this - we don't want
+  ;; TestableAWS4Signer to be compiled unless we specify, because
+  ;; it depends on the Amazon AWS client lib
   :profiles {:dev
              {:dependencies
               [[com.amazonaws/aws-java-sdk "1.9.3"
                 :exclusions [joda-time
-                             commons-logging]]]}
+                             commons-logging]]]
+              :source-paths ["src" "test"]
+              :aot [eulalie.TestableAWS4Signer]}
              :user
              {:dependencies
               [[com.amazonaws/aws-java-sdk "1.9.3"
                 :exclusions [joda-time
-                             commons-logging]]]}})
+                             commons-logging]]]}
+             :source-paths ["src" "test"]
+             :aot [eulalie.TestableAWS4Signer]})
