@@ -20,7 +20,6 @@
                {:content (fn->> (conj {:action (->camel-s target) :version version})
                                 ->camel-keys-s map->query)
                 :headers #(assoc % :content-type "application/x-www-form-urlencoded")})]
-      (clojure.pprint/pprint req)
       req))
 
   (transform-request [_ req]

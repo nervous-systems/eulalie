@@ -1,13 +1,15 @@
 (ns eulalie.service-util
-  (:require [eulalie.util :refer :all]
-            [clojure.tools.logging :as log]
-            [clojure.core.async :as async]
-            [clojure.string :as string]
-            [camel-snake-kebab.core :refer [->CamelCaseKeyword ->CamelCaseString ->kebab-case-keyword]]
-            [camel-snake-kebab.extras :refer [transform-keys]]
-            [clj-time.format]
-            [clj-time.coerce]
-            [clj-time.core :as clj-time])
+  (:require
+   [eulalie.util :refer :all]
+   [clojure.core.async :as async]
+   [clojure.string :as string]
+   [clj-time.format :as time-format]
+   [clj-time.coerce :as time-coerce]
+   [camel-snake-kebab.core :refer
+    [->CamelCaseKeyword
+     ->CamelCaseString
+     ->kebab-case-keyword]]
+   [camel-snake-kebab.extras :refer [transform-keys]])
   (:import java.nio.charset.Charset
            java.util.zip.CRC32))
 
@@ -26,9 +28,9 @@
 
 ;; clj-time's :rfc882 formatter uses Z, whereas RFC 882 specifies the
 ;; equivalent of either Z or z.  AWS uses z.
-(let [fmt (clj-time.format/formatter "EEE, dd MMM yyyy HH:mm:ss z")]
-  (def rfc822->time (partial clj-time.format/parse fmt))
-  (def time->rfc822 (partial clj-time.format/unparse fmt)))
+(let [fmt (time-format/formatter "EEE, dd MMM yyyy HH:mm:ss z")]
+  (def rfc822->time (partial time-format/parse fmt))
+  (def time->rfc822 (partial time-format/unparse fmt)))
 
 (defn header [headers header]
   (let [value (headers header)]
@@ -39,7 +41,7 @@
   ;; TODO parse from SQS error message
   (or (some->> (header headers :date)
                rfc822->time
-               clj-time.coerce/to-long
+               time-coerce/to-long
                (- (msecs-now)))
       0))
 
@@ -106,8 +108,8 @@
                 (doto (CRC32.)
                   (.update (get-utf8-bytes body))))))))
 
-(def aws-date-format      (clj-time.format/formatters :basic-date))
-(def aws-date-time-format (clj-time.format/formatters :basic-date-time-no-ms))
+(def aws-date-format      (time-format/formatters :basic-date))
+(def aws-date-time-format (time-format/formatters :basic-date-time-no-ms))
 
 (def ->camel-k ->CamelCaseKeyword)
 (def ->camel-s ->CamelCaseString)

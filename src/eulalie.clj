@@ -4,13 +4,11 @@
    [clojure.tools.logging :as log]
    [clojure.walk :as walk]
    [clojure.core.async :as async]
-   [clojure.set :refer [rename-keys]]
    [cemerick.url :refer [url]]
    [eulalie.service-util :refer :all]
    [eulalie.util :refer :all]))
 
 (defn channel-request! [m]
-  (clojure.pprint/pprint m)
   (let [ch (async/chan)]
     (http/request m #(close-with! ch %))
     ch))
@@ -48,7 +46,7 @@
               (headers->error-type headers)
               (transform-response-error service resp)
               :unrecognized)
-    ;; This is transparently incorrect, ask service for the whole ;; thing
+    ;; This is transparently incorrect, ask service for entire error
     :message (:message body)}
    resp))
 
