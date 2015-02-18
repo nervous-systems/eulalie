@@ -2,6 +2,7 @@
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
+  :scm {:name "git" :name "https://github.com/nervous-systems/eulalie"}
   :global-vars {*warn-on-reflection* true}
   :source-paths ["src"]
   :dependencies
