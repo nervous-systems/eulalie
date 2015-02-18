@@ -1,35 +1,32 @@
 (ns eulalie.sign
   (:require [eulalie.util :refer :all]
             [eulalie.sign-util :refer :all]
+            [eulalie.service-util :refer [aws-date-format aws-date-time-format]]
             [clojure.string :as string]
             [cemerick.url    :as url]
             [clojure.set     :refer [rename-keys]]
             [clojure.tools.logging :as log]
+            [clj-time.core :as time]
+            [clj-time.format :as time-format]
+            [clj-time.coerce :as time-coerce]
             [digest])
   (:import [java.util Date]
            [javax.crypto Mac]
            [javax.crypto.spec SecretKeySpec]
-           [com.amazonaws AmazonClientException]
-           [com.amazonaws.auth SigningAlgorithm]
-           [com.amazonaws.util BinaryUtils]))
-
-(def date-formatter (make-date-formatter "yyyyMMdd"))
-(def time-formatter (make-date-formatter "yyyyMMdd'T'HHmmss'Z'"))
+           [javax.xml.bind DatatypeConverter]))
 
 (def KEY-PREFIX "AWS4")
 (def MAGIC-SUFFIX "aws4_request")
 (def ALGORITHM "AWS4-HMAC-SHA256")
 
-(defn signature-date [offset-secs]
-  (-> (System/currentTimeMillis)
-      ^Long (- (* offset-secs 1000))
-      Date.
-      .getTime))
+(defn signature-date [offset-msecs]
+  ;; Do this ourselves, because time/millis wants an int, and the
+  ;; offset could be large
+  (time-coerce/from-long (- (time-coerce/to-long (time/now)) offset-msecs)))
 
-(defn get-scope [{:keys [host]} date overrides]
-  (let [region-name (get-or-calc-region host overrides)
-        date-stamp (date-formatter date)
-        {:keys [region-name service-name]} overrides]
+(defn get-scope [service-name {:keys [host]} date]
+  (let [region-name (get-or-calc-region service-name host)
+        date-stamp (time-format/unparse aws-date-format date)]
     (slash-join date-stamp region-name service-name MAGIC-SUFFIX)))
 
 (defn canonical-request
@@ -50,51 +47,53 @@
 
 (defn signable-string [date scope canon-req]
   (newline-join
-   ALGORITHM (time-formatter date) scope (digest/sha-256 canon-req)))
+   ALGORITHM
+   (time-format/unparse aws-date-time-format date)
+   scope
+   (digest/sha-256 canon-req)))
 
 (defn sign [s key alg]
-  (try
-    (.doFinal
-     (doto (Mac/getInstance alg)
-       (.init (SecretKeySpec. key alg)))
-     s)
-    (catch Exception e
-      (throw
-       (AmazonClientException.
-        (str "Unable to calculate a request signature " (.getMessage e)) e)))))
+  (.doFinal
+   (doto (Mac/getInstance alg)
+     (.init (SecretKeySpec. key alg)))
+   s))
+
+(def HMAC-SHA256 "HmacSHA256")
 
 (defn compute-signature
-  [{:keys [endpoint] :as r} date scope hash creds overrides]
+  [service-name creds {:keys [endpoint] :as r} date scope hash]
   (let [[headers canon-req] (canonical-request r hash)
-        alg       (.toString SigningAlgorithm/HmacSHA256)
-        sign*     (fn [^String s k] (sign (.getBytes s) k alg))
+        sign*     (fn [^String s k] (sign (.getBytes s) k HMAC-SHA256))
         signature (->> (str KEY-PREFIX (:secret-key creds))
                        .getBytes
-                       (sign* (date-formatter date))
-                       (sign* (get-or-calc-region (:host endpoint) overrides))
-                       (sign* (:service-name overrides))
+                       (sign* (time-format/unparse aws-date-format date))
+                       (sign* (get-or-calc-region service-name (:host endpoint)))
+                       (sign* service-name)
                        (sign* MAGIC-SUFFIX)
                        (sign* (signable-string date scope canon-req)))]
-    (log/debug canon-req)
-    
-    [headers (BinaryUtils/toHex signature)]))
+    (log/info canon-req)
 
-(defn aws4-sign [{:keys [time-offset endpoint body date] :as r} creds overrides]
+    [headers (.toLowerCase (DatatypeConverter/printHexBinary signature))]))
+
+(defn aws4-sign
+  [service-name creds {:keys [time-offset endpoint content date] :as r}]
+  (log/debug (with-out-str (clojure.pprint/pprint r)))
   (let [{:keys [token access-key] :as creds} (sanitize-creds creds)
-        date    (or date (signature-date (or time-offset 0)))
-        hash    (digest/sha-256 body)
+        date    (or (some-> date time-coerce/from-long)
+                    (signature-date (or time-offset 0)))
+        hash    (digest/sha-256 content)
         headers (merge
-                 {:x-amz-date (time-formatter date)
+                 {:x-amz-date (time-format/unparse aws-date-time-format date)
                   :host (host-header endpoint)}
                  (when token
                    {:x-amz-security-token token}))
-        r       (-> r
-                    (add-headers headers))
-        scope (get-scope endpoint date overrides)
-        [header-names signature]  (compute-signature r date scope hash creds overrides)
+        r       (add-headers r headers)
+        scope (get-scope service-name endpoint date)
+        [header-names signature]  (compute-signature service-name creds r date scope hash)
         auth-params {"Credential" (slash-join access-key scope)
                      "SignedHeaders" (string/join ";" header-names)
                      "Signature" signature}]
+    (log/debug "Using date" date)
     (add-headers
      r
      {:authorization (make-header-value ALGORITHM auth-params)

@@ -1,6 +1,7 @@
 (ns eulalie.sign-util
   (:require [eulalie.util :refer :all]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [clojure.tools.logging :as log])
   (:import [org.joda.time.format
             DateTimeFormatter
             DateTimeFormat]
@@ -35,10 +36,11 @@
     host
     (str host ":" port)))
 
-(defn get-or-calc-region [host {:keys [region-name service-name]}]
-  (or region-name
-      (AwsHostNameUtils/parseRegionName
-       ^String host ^String service-name)))
+(defn get-or-calc-region [service-name host]
+  ;; TODO maybe allow region to be overridden?  it's not clear under
+  ;; what circumstances we won't be able to figure it out.
+  (AwsHostNameUtils/parseRegionName
+   ^String host ^String service-name))
 
 (def collapse-whitespace
   (fn-some-> (string/replace #"\s+" " ")))
@@ -53,7 +55,7 @@
       k))
    (collapse-whitespace v)])
 
-(defn canonical-headers [m]  
+(defn canonical-headers [m]
   (let [m (->> m
                (map canonical-header)
                (into (sorted-map)))]
@@ -69,7 +71,3 @@
           (string/join ", ")
           not-empty
           (str " "))))
-
-(defn make-date-formatter [s]
-  (let [formatter (-> s DateTimeFormat/forPattern .withZoneUTC)]
-    (fn [^Long l] (.print formatter l))))

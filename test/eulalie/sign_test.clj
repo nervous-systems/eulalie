@@ -3,7 +3,8 @@
             [clojure.test :refer :all]
             [cemerick.url :refer [url]]
             [eulalie.util :refer :all]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [camel-snake-kebab.core :refer [->kebab-case-keyword]])
   (:import eulalie.TestableAWS4Signer
            java.util.Date
            [com.amazonaws.auth
@@ -44,45 +45,31 @@
 ;; SignedHeaders=content-length;content-type;host;x-amz-date;x-amz-target,
 ;; Signature=23a5f9122025b561e665408c0b64b18bc91c4262bdd647c6d97b45ad4d058418"
 
-
-(defn decompose-param-pair [s]
-  (let [[k v] (string/split s #"=" 2)]
-    [(keyword (string/lower-case k)) v]))
-
-(def transform-auth-map
-  (map-rewriter
-   [:credential #(string/split % #"/")
-    :signedheaders :signed-headers
-    :signed-headers #(string/split % #";")]))
-
 (defn decompose-auth [s]
   (let [[h & t] (string/split s #",*\s+")]
-    [h (->> t
-            (map decompose-param-pair)
-            (into {})
-            transform-auth-map)]))
+    [h (into {} (map #(string/split % #"=" 2) t))]))
 
 (deftest aws4
   (let [date    (Date.)
         signer  (aws4-signer* date)
-        creds   (BasicAWSCredentials.
-                 (:access-key *creds*)
-                 (:secret-key *creds*))
-        aws-req (doto (.marshall
-                       (DescribeTableRequestMarshaller.)
-                       (DescribeTableRequest. "table-name"))
-                  (.setEndpoint (java.net.URI. "https://dynamodb.us-east-1.amazonaws.com/")))]
+        creds   (BasicAWSCredentials. (:access-key *creds*) (:secret-key *creds*))
+
+        ^Request aws-req
+        (doto (.marshall
+               (DescribeTableRequestMarshaller.)
+               (DescribeTableRequest. "table-name"))
+          (.setEndpoint (java.net.URI. (str *endpoint*))))]
 
     (.sign signer aws-req creds)
-    
-    (let [{auth "Authorization" :as headers} (into {} (.getHeaders ^Request aws-req))
-          req {:body (-> aws-req .getContent slurp)
+
+    (let [{auth "Authorization" :as headers} (into {} (.getHeaders aws-req))
+          headers (dissoc headers "Authorization")
+          req {:content (-> aws-req .getContent slurp)
                :date (.getTime date)
                :endpoint *endpoint*
-               :method "POST"
-               :query-payload? false
-               :headers (dissoc headers "Authorization")}
-          {{auth' :authorization} :headers}
-          (aws4-sign req *creds* {:service-name "dynamodb"
-                                  :region-name "us-east-1"})]
+               :method :post
+               :headers headers}
+          auth' (-> (aws4-sign "dynamodb" *creds* req)
+                    :headers
+                    :authorization)]
       (is (= (decompose-auth auth) (decompose-auth auth'))))))

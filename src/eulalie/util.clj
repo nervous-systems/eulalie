@@ -1,14 +1,32 @@
 (ns eulalie.util
-  (:require [clojure.set :refer [rename-keys]]))
+  (:require [clojure.tools.logging :as log]
+            [clojure.set :refer [rename-keys]]
+            [clojure.core.async :as async]
+            [clojure.string :as string]
+            [clojure.algo.generic.functor :as functor]
+            [clj-time.core :as clj-time]
+            [clj-time.coerce]))
+
+(defmethod functor/fmap clojure.lang.Keyword [f v] (f v))
+(defmethod functor/fmap :default [f v] (f v))
+
+(defmacro go-catching [& body]
+  `(async/go
+     (try
+       ~@body
+       (catch Exception e#
+         (log/error e# "Caught exception in (go) block")
+         e#))))
 
 (defn map-rewriter [spec]
   (fn [m]
     (reduce
      (fn [m [k v]]
        (cond
-        (vector?  v) (update-in m [k] #(get-in % v))
-        (keyword? v) (rename-keys m {k v})
-        :else        (update-in m [k] v)))
+         (vector?  v) (update-in m [k] #(get-in % v))
+         (keyword? v) (rename-keys m {k v})
+         (fn?      v) (update-in m [k] v)
+         :else        (assoc m k v)))
      m
      (if (map? spec)
        spec
@@ -20,21 +38,109 @@
 (defmacro mapmap [body & ls]
   `(into {} (map (fn [[~'K ~'V]] ~body) ~@ls)))
 
-(defmacro fn-> [& forms]
-  `(fn [x#]
-     (-> x# ~@forms)))
+(defn invert-map [m]
+  (mapmap [V K] m))
 
-(defmacro fn->> [& forms]
-  `(fn [x#]
-     (->> x# ~@forms)))
+(defn mapkv [kf vf m]
+  (into {} (map (fn [[k v]] [(kf k) (vf v)]) m)))
 
-(defmacro fn-some-> [& forms]
-  `(fn [x#]
-     (some-> x# ~@forms)))
+(defn mapkeys [f m]
+  (mapkv f identity m))
 
-(defmacro fn-some->> [& forms]
-  `(fn [x#]
-     (some->> x# ~@forms)))
+(defn mapvals [f m]
+  (mapkv identity f m))
 
-(def stringify-keys
-  (fn->> (mapmap [(if (keyword? K) (name K) (str K)) V])))
+(defmacro fn->       [& forms] `(fn [x#] (-> x# ~@forms)))
+(defmacro fn->>      [& forms] `(fn [x#] (->> x# ~@forms)))
+(defmacro fn-some->  [& forms] `(fn [x#] (some-> x# ~@forms)))
+(defmacro fn-some->> [& forms] `(fn [x#] (some->> x# ~@forms)))
+
+(defn throw-err [e]
+  (when (instance? Throwable e)
+    (throw e))
+  e)
+
+(defmacro <? [ch]
+  `(throw-err (async/<! ~ch)))
+
+(defmacro <?! [ch]
+  `(throw-err (async/<!! ~ch)))
+
+(defn- when-not-pred-fn [p]
+  #(when-not (p %)
+     %))
+
+(def not-zero (when-not-pred-fn zero?))
+(def not-neg  (when-not-pred-fn neg?))
+
+(defn to-first-match [^String hay ^String needle]
+  (or (some->> (.indexOf hay needle) not-neg (subs hay 0)) hay))
+
+(defn from-first-match [^String hay ^String needle]
+  (or (some->> (.indexOf hay needle) not-neg inc (subs hay)) hay))
+
+(defn from-last-match [^String hay ^String needle]
+  (or (some->> (.lastIndexOf hay needle) not-neg inc (subs hay)) hay))
+
+(defn to-last-match [^String hay ^String needle]
+  (or (some->> (.lastIndexOf hay needle) not-neg (subs hay 0)) hay))
+
+(defn last-char [s]
+  (->> s count dec (get s)))
+
+(defn cointoss? []
+  (zero? (rand-int 2)))
+
+(defn get-unqualified-name [^Class c]
+  (.getSimpleName c))
+
+;; Taken from encore
+  (defn fq-name "Like `name` but includes namespace in string when present."
+    [x] (if (string? x) x
+            (let [n (name x)]
+              (if-let [ns (namespace x)] (str ns "/" n) n))))
+
+(defn stringy? [x]
+  (or (string? x) (keyword? x)))
+
+(defn instance-any? [ts x]
+  (some #(instance? % x) ts))
+
+(defn rand-string []
+  (.toString (java.util.UUID/randomUUID)))
+
+(defn dissoc-in
+  "Dissociates an entry from a nested associative structure returning a new
+  nested structure. keys is a sequence of keys. Any empty maps that result
+  will not be present in the new structure."
+  [m [k & ks :as keys]]
+  (if ks
+    (if-let [nextmap (get m k)]
+      (let [newmap (dissoc-in nextmap ks)]
+        (if (seq newmap)
+          (assoc m k newmap)
+          (dissoc m k)))
+      m)
+    (dissoc m k)))
+
+(defn interpolate-keys [m]
+  (into {}
+    (mapcat (fn [[k v]]
+              (if (coll? k)
+                (map vector k (repeat v))
+                [[k v]])) m)))
+
+(defn require-keys [m ks]
+  (if (map? ks)
+    (require-keys (clojure.set/rename-keys m ks) (vals ks))
+    (let [m (select-keys m ks)]
+      (when (and (not-empty m) (not-any? nil? (vals m)))
+        m))))
+
+(defn close-with! [c val]
+  (when-not (nil? val)
+    (async/put! c val))
+  (async/close! c))
+
+(defn msecs-now []
+  (clj-time.coerce/to-long (clj-time/now)))
