@@ -3,6 +3,7 @@
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
   :scm {:name "git" :name "https://github.com/nervous-systems/eulalie"}
+  :signing {:gpg-key "moe@nervous.io"}
   :global-vars {*warn-on-reflection* true}
   :source-paths ["src"]
   :dependencies
