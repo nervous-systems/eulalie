@@ -10,13 +10,11 @@
   :dependencies
   [[org.clojure/clojure        "1.6.0"]
    [org.clojure/core.async     "0.1.346.0-17112a-alpha"]
-   [org.clojure/core.match     "0.2.1"]
    [org.clojure/tools.logging  "0.3.1"]
    [org.clojure/algo.generic   "0.1.2"]
 
    [camel-snake-kebab           "0.2.5"]
 
-   [org.slf4j/jcl-over-slf4j   "1.7.7"]
    [org.slf4j/slf4j-log4j12    "1.7.5"]
    [log4j/log4j                "1.2.17"
     :exclusions [javax.mail/mail
