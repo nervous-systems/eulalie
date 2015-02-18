@@ -1,14 +1,22 @@
 # eulalie
 
-A Clojure library designed to ... well, that part is up to you.
+Asynchronous, pure-Clojure AWS client.  There is currently no
+documentation.  Dynamo is fully supported, SNS is partially supported.
+More services to come.
 
 ## Usage
 
-FIXME
+```clojure
+(eulalie/issue-request!
+  dynamo/service
+  {:access-key ... :secret-key ...}
+  {:target :describe-table
+   :content {:table-name ...}})
+```
 
 ## License
 
-Copyright © 2014 FIXME
+eulalie is free and unencumbered public domain software. For more
+information, see http://unlicense.org/ or the accompanying UNLICENSE
+file.
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
