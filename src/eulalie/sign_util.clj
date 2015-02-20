@@ -5,7 +5,7 @@
   (:import [org.joda.time.format
             DateTimeFormatter
             DateTimeFormat]
-           [com.amazonaws.util AwsHostNameUtils]))
+           [java.util.regex Pattern]))
 
 (def trim (fn-some-> string/trim))
 
@@ -36,11 +36,37 @@
     host
     (str host ":" port)))
 
+(def default-region "us-east-1")
+
+(defn parse-standard-region-name [fragment]
+  ;; AWS has a bunch of S3 & cloudfront special-casing here
+  (let [region (from-last-match fragment ".")]
+    ;; no dot
+    (cond (= region fragment) default-region
+          (= region "us-gov") "us-gov-west-1"
+          :else               region)))
+
+(defn host->region [service-hint host]
+  (when service-hint
+    ;; AWS does some CloundFront specific junk with service hints
+    (let [pattern (re-matcher
+                   (re-pattern
+                    (str "^(?:.+\\.)?"
+                         (Pattern/quote service-hint)
+                         "[.-]([a-z0-9-]+)\\."))
+                   host)]
+      (-> pattern re-find last))))
+
+(defn parse-region-name [service-hint host]
+  (let [prefix (to-last-match host ".amazonaws.com")]
+    (if (not= prefix host)
+      (parse-standard-region-name prefix)
+      (or (host->region service-hint host) default-region))))
+
 (defn get-or-calc-region [service-name host]
   ;; TODO maybe allow region to be overridden?  it's not clear under
   ;; what circumstances we won't be able to figure it out.
-  (AwsHostNameUtils/parseRegionName
-   ^String host ^String service-name))
+  (parse-region-name service-name host))
 
 (def collapse-whitespace
   (fn-some-> (string/replace #"\s+" " ")))
