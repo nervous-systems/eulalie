@@ -26,24 +26,15 @@
    [com.cemerick/url           "0.1.1"]
    [cheshire                   "5.3.1"]
    [digest                     "1.4.4"]
-   [clj-time                   "0.9.0"]
-   [joda-time                  "2.5"]]
-  ;; There's probably a simpler way to do this - we don't want
-  ;; TestableAWS4Signer to be compiled unless we specify, because
-  ;; it depends on the Amazon AWS client lib
-  :profiles {:test
+   [clj-time                   "0.9.0"]]
+  :exclusions [[org.clojure/clojure]]
+
+  :profiles {:dev
              {:dependencies
               [[com.amazonaws/aws-java-sdk "1.9.3"
                 :exclusions [joda-time
-                             commons-logging]]
+                             commons-logging
+                             fasterxml.jackson.core/jackson-core]]
                [org.slf4j/jcl-over-slf4j   "1.7.7"]]
               :source-paths ["src" "test"]
-              :aot [eulalie.TestableAWS4Signer]}
-             :user
-             {:dependencies
-              [[com.amazonaws/aws-java-sdk "1.9.3"
-                :exclusions [joda-time
-                             commons-logging]]
-               [org.slf4j/jcl-over-slf4j   "1.7.7"]]}
-             :source-paths ["src" "test"]
-             :aot [eulalie.TestableAWS4Signer]})
+              :aot [eulalie.TestableAWS4Signer]}})
