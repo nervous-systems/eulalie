@@ -1,7 +1,6 @@
 (ns eulalie.dynamo.mapping-test
   (:require [eulalie.dynamo.mapping :as mapping]
             [eulalie.dynamo.test-data :as test-data]
-            [eulalie.mapping :refer :all]
             [eulalie.util :refer :all]
             [clojure.data :as data]
             [clojure.test :refer :all]))
