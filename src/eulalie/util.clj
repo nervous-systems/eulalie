@@ -95,10 +95,11 @@
   (.getSimpleName c))
 
 ;; Taken from encore
-  (defn fq-name "Like `name` but includes namespace in string when present."
-    [x] (if (string? x) x
-            (let [n (name x)]
-              (if-let [ns (namespace x)] (str ns "/" n) n))))
+(defn fq-name "Like `name` but includes namespace in string when present."
+  [x]
+  (if (string? x) x
+      (let [n (name x)]
+        (if-let [ns (namespace x)] (str ns "/" n) n))))
 
 (defn stringy? [x]
   (or (string? x) (keyword? x)))

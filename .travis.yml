@@ -1,0 +1,7 @@
+language: clojure
+lein: lein2
+script: lein2 test
+env:
+    global:
+        - secure: "PjtKH/giuYmexAfGFBVf7PU4qf8V4vCgk4GRwdASXTipWeXzN5Sea+b6wKUw+pfeMnJg3PryR4WP85bi+SmN3ky7rolMXepznQm8P0e8PozHJRjJmopbbNVlnPJYfV0m7BhnvfxknC4kVfDGpd/qq7ROtpF7/ccMsHgDptZrYbk="
+        - secure: "aMMW0Aesq+PC450a8q3w5mbqwDX+of/ggut3bGUX33Cb31Q7WWKvzpYGmYZ71wxEpzFuFQZ+zkOkerMvnN4EDZSUJphYmzXO8zWaipwGT/7NfzWvjws7DaepKjraNyelNdIWxS2V0+mV/n1NOw9rE5AO/7fdxbHZEIqkUUNmL20="
