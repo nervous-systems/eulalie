@@ -1,8 +1,8 @@
-# eulalie
+# eulalie  [![Build Status](https://travis-ci.org/nervous-systems/eulalie.svg?branch=master)](https://travis-ci.org/nervous-systems/eulalie)
 
 Asynchronous, pure-Clojure AWS client.  There is currently no
 documentation.  Dynamo is fully supported, SNS is partially supported.
-More services to come.
+More services to come. 
 
 ## Usage
 
