@@ -11,10 +11,12 @@
 ;; FIXME how do we handle errors in the body like {__type:} in a
 ;; general way?
 
-(def body->error-type ;; something like this, have service handle it
-  (fn-some->
-   :__type not-empty (from-last-match "#") not-empty
-   ->kebab-case-keyword))
+(defn body->error [{:keys [__type message]}]
+  (when-let [t (some-> __type
+                       not-empty
+                       (from-last-match "#")
+                       ->kebab-case-keyword)]
+    {:type t :message message}))
 
 (defn req-target [prefix {:keys [target]}]
   (str prefix (->camel-s target)))
@@ -37,7 +39,7 @@
     (some-> resp (cheshire/decode true) mapping/transform-response))
 
   (transform-response-error [_ resp]
-    (some-> resp :body (cheshire/decode true) body->error-type))
+    (some-> resp :body (cheshire/decode true) body->error))
 
   (request-backoff [_ retry-count error]
     (default-retry-backoff retry-count error)) ;; wrong

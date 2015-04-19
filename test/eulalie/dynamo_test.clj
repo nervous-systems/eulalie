@@ -1,11 +1,11 @@
 (ns eulalie.dynamo-test
-  (:require [eulalie.dynamo :as dynamo]
-            [eulalie.test-util :refer :all]
-            [clojure.core.async :as async]
-            [cemerick.url :refer [url]]
-            [eulalie :refer :all]
-            [eulalie.util :refer :all]
-            [clojure.test :refer :all]))
+  (:require
+   [eulalie.test-util :refer :all]
+   [clojure.core.async :as async]
+   [cemerick.url :refer [url]]
+   [eulalie :refer :all]
+   [eulalie.util :refer :all]
+   [clojure.test :refer :all]))
 
 (defn issue [target content & [req-overrides]]
   (let [req (merge

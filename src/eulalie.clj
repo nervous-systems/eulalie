@@ -41,12 +41,10 @@
 
 (defn parse-error [service {:keys [headers body] :as resp}]
   (decorate-error
-   {:type    (or
-              (headers->error-type headers)
-              (transform-response-error service resp)
-              :unrecognized)
-    ;; This is transparently incorrect, ask service for entire error
-    :message (:message body)}
+   (if-let [e (headers->error-type headers)]
+     {:type e}
+     (or (transform-response-error service resp)
+         {:type :unrecognized}))
    resp))
 
 (defn handle-result
