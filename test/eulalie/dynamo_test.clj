@@ -12,14 +12,14 @@
              {:service :dynamo
               :target  target
               :max-retries 0
-              :content content
+              :body content
               :creds creds}
              req-overrides)]
     (go-catching
-     (let [{:keys [error] :as resp} (<? (issue-request! dynamo/service req))]
-       (if (not-empty error)
-         (throw (Exception. (pr-str error)))
-         resp)))))
+      (let [{:keys [error] :as resp} (<? (issue-request! req))]
+        (if (not-empty error)
+          (throw (Exception. (pr-str error)))
+          resp)))))
 
 (defn issue* [target content & [req-overrides]]
   (-> (issue target content req-overrides) <?! :body))

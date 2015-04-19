@@ -11,7 +11,7 @@ More services to come.
   eulalie.dynamo/service
   {:access-key ... :secret-key ...}
   {:target :describe-table
-   :content {:table-name ...}})
+   :body {:table-name ...}})
 ```
 
 ## License

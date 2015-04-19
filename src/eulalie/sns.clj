@@ -17,8 +17,8 @@
     (let [req (merge {:max-retries max-retries :endpoint endpoint :method :post} req)
           req (rewrite-map
                req
-               {:content (fn->> (conj {:action (->camel-s target) :version version})
-                                ->camel-keys-s map->query)
+               {:body (fn->> (conj {:action (->camel-s target) :version version})
+                             ->camel-keys-s map->query)
                 :headers #(assoc % :content-type "application/x-www-form-urlencoded")})]
       req))
 

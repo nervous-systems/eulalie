@@ -7,6 +7,6 @@
 (deftest ^:integration list-subscriptions
   (is (not (:error
             (<?! (eulalie/issue-request!
-                  sns/service
-                  {:target :list-subscriptions
-                   :creds  creds}))))))
+                  {:service :sns
+                   :target  :list-subscriptions
+                   :creds creds}))))))

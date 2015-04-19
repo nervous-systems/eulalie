@@ -81,7 +81,7 @@
 
 (defn aws4-sign
   [service-name
-   {:keys [time-offset endpoint content date] :as r}]
+   {:keys [time-offset endpoint body date] :as r}]
 
   (let [{{:keys [token access-key] :as creds} :creds date :date :as r}
         (-> r
@@ -90,7 +90,7 @@
             (update-in [:creds] sanitize-creds))
         r   (add-headers r (required-headers r))
 
-        hash  (digest/sha-256 content)
+        hash  (digest/sha-256 body)
         scope (get-scope service-name endpoint date)
         [header-names signature]  (compute-signature service-name creds r date scope hash)
         auth-params {"Credential" (slash-join access-key scope)

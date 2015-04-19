@@ -65,7 +65,7 @@
 
     (let [{auth "Authorization" :as headers} (into {} (.getHeaders aws-req))
           headers (dissoc headers "Authorization")
-          req {:content (-> aws-req .getContent slurp)
+          req {:body (-> aws-req .getContent slurp)
                :date (.getTime date)
                :endpoint endpoint
                :method :post

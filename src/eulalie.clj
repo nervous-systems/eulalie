@@ -17,8 +17,7 @@
   (map-rewriter
    [:endpoint :url
     :url      str
-    :headers  walk/stringify-keys
-    :content  :body]))
+    :headers  walk/stringify-keys]))
 
 (defprotocol AmazonWebService
   (prepare-request    [this req])
@@ -31,12 +30,12 @@
 (defn prepare-req
   [{:keys [endpoint headers] :as req} service]
 
-  (let [{:keys [content] :as req}
+  (let [{:keys [body] :as req}
         (-> (prepare-request service req)
-            (update-in [:content] #(transform-request service %))
+            (update-in [:body] #(transform-request service %))
             (update-in [:endpoint] concretize-port))]
     ;; this needs to go away, can't assume it can be counted now
-    (update-in req [:headers] merge {:content-length (count content)})))
+    (update-in req [:headers] merge {:content-length (count body)})))
 
 (def ok? (fn-> :status (= 200)))
 
@@ -67,24 +66,39 @@
                    :error   error}]
           [:error error])))))
 
+(def load-internal-service
+  (memoize
+   (fn [service]
+     (let [service-ns (->> service name (str "eulalie.") symbol)]
+       (require service-ns)
+       (var-get (ns-resolve service-ns 'service))))))
+
+(defmulti  resolve-service identity)
+(defmethod resolve-service :default [service]
+  ;; ad-hoc services can be passed in
+  (if (satisfies? AmazonWebService service)
+    service
+    (load-internal-service service)))
+
 (defn issue-request!
-  [service request]
-  (go-catching
-    (loop [request (prepare-req request service)
-           retries 0]
-      (let [request' (sign-request service request)
-            aws-resp (-> request' req->http-kit channel-request! <?)
-            result   {:response (dissoc aws-resp :opts)
-                      :retries  retries
-                      :request  request'}
-            [label value] (handle-result service result)]
-        (condp = label
-          :ok    (assoc result :body  value)
-          :error (assoc result :error value)
-          :retry (let [{:keys [timeout error]} value
-                       request (merge request (select-keys error [:time-offset]))]
-                   (some-> timeout <?)
-                   (recur request (inc retries))))))))
+  [{:keys [service] :as request}]
+  (let [service (resolve-service service)]
+    (go-catching
+      (loop [request (prepare-req request service)
+             retries 0]
+        (let [request' (sign-request service request)
+              aws-resp (-> request' req->http-kit channel-request! <?)
+              result   {:response (dissoc aws-resp :opts)
+                        :retries  retries
+                        :request  request'}
+              [label value] (handle-result service result)]
+          (condp = label
+            :ok    (assoc result :body  value)
+            :error (assoc result :error value)
+            :retry (let [{:keys [timeout error]} value
+                         request (merge request (select-keys error [:time-offset]))]
+                     (some-> timeout <?)
+                     (recur request (inc retries)))))))))
 
 (defn issue-request!! [& args]
   (<?! (apply issue-request! args)))

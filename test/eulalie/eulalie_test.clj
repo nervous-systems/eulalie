@@ -34,7 +34,7 @@
 (def test-service
   (TestService.))
 
-(def issue-request* (partial issue-request!! test-service))
+(def issue-request* (fn-> (assoc :service test-service) issue-request!!))
 
 (defn with-local-server [resps bodyf]
   (let [resps (cond->> resps
@@ -58,7 +58,7 @@
   (let [{:keys [retries error]}
         (issue-request*
          {:endpoint (url "http://eulalie.invalid")
-          :content ""
+          :body ""
           :max-retries 0})]
     (is (zero? retries))
     (is (= :unknown-host (:type error)))))
@@ -67,7 +67,7 @@
   (let [{:keys [retries error]}
         (issue-request*
          {:endpoint (url "http://eulalie.invalid")
-          :content ""
+          :body ""
           :max-retries 1})]
     (is (= 1 retries))
     (is (= :unknown-host (:type error)))))
@@ -77,7 +77,7 @@
     (fn [{:keys [url]}]
       (is (= :unrecognized
              (->
-              (issue-request* {:endpoint url :content ""})
+              (issue-request* {:endpoint url :body ""})
               :error
               :type))))))
 
@@ -88,7 +88,7 @@
     (with-local-server [{:status 500} ok-resp]
       (fn [{:keys [url]}]
         (let [{:keys [body retries]}
-              (issue-request* {:endpoint url :content ""})]
+              (issue-request* {:endpoint url :body ""})]
           (is (= "hi from retry-ok!" body))
           (is (= 1 retries)))))))
 
@@ -124,7 +124,7 @@
         (with-local-server [(skewed-response server-time)]
           (fn [{:keys [url]}]
             (with-canned-time client-time
-              issue-request* {:endpoint url :content "" :max-retries 0})))]
+              issue-request* {:endpoint url :body "" :max-retries 0})))]
     (is (= :request-time-too-skewed type))
     (is (= (* 1000 60 5) time-offset))
     (is (= client-time (first (request-dates reqs))))))
@@ -143,7 +143,7 @@
                             (response 200 {:body token})]
           (fn [{:keys [url]}]
             (with-canned-time client-time
-              issue-request* {:endpoint url :content "" :max-retries 1})))]
+              issue-request* {:endpoint url :body "" :max-retries 1})))]
     (is (= body token))
     (is (nil? time-offset))
     (is (= server-time (last (request-dates reqs))))))
