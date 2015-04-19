@@ -22,10 +22,10 @@
   (string/join "\n" rest))
 
 (defn add-header [r k v]
-  (update-in r [:headers] (fn-> (assoc k v))))
+  (assoc-in r [:headers k] v))
 
 (defn add-headers [r m]
-  (update-in r [:headers] (fn-> (merge m))))
+  (update-in r [:headers] merge m))
 
 (defn default-port? [{:keys [protocol port]}]
   (or (and (= protocol "http")  (= port 80))

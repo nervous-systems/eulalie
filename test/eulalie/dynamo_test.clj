@@ -12,11 +12,11 @@
              {:service :dynamo
               :target  target
               :max-retries 0
-              ;; :endpoint (url "http://localhost:8000")
-              :content content}
+              :content content
+              :creds creds}
              req-overrides)]
     (go-catching
-     (let [{:keys [error] :as resp} (<? (issue-request! dynamo/service creds req))]
+     (let [{:keys [error] :as resp} (<? (issue-request! dynamo/service req))]
        (if (not-empty error)
          (throw (Exception. (pr-str error)))
          resp)))))
@@ -26,17 +26,17 @@
 
 (defn await-status! [table status]
   (go-catching
-   (loop []
-     (let [status' (-> (issue* :describe-table {:table-name table})
-                       <?
-                       :table
-                       :table-status)]
+    (loop []
+      (let [status' (-> (issue* :describe-table {:table-name table})
+                        <?
+                        :table
+                        :table-status)]
 
-       (cond (nil? status')     nil
-             (= status status') status'
-             :else (do
-                     (<? (async/timeout 1000))
-                     (recur)))))))
+        (cond (nil? status')     nil
+              (= status status') status'
+              :else (do
+                      (<? (async/timeout 1000))
+                      (recur)))))))
 
 (defn await-status!! [table status]
   (<?! (await-status! table status)))

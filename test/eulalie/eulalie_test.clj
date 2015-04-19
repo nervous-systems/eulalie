@@ -28,13 +28,13 @@
   (transform-response [_ resp] resp)
   (transform-response-error [_ resp] nil)
   (request-backoff [_ retries error])
-  (sign-request    [_ creds req]
-    (sign/aws4-sign "testservice" creds req)))
+  (sign-request    [_ req]
+    (sign/aws4-sign "testservice" req)))
 
 (def test-service
   (TestService.))
 
-(def issue-request* (partial issue-request!! test-service creds))
+(def issue-request* (partial issue-request!! test-service))
 
 (defn with-local-server [resps bodyf]
   (let [resps (cond->> resps
@@ -72,9 +72,6 @@
     (is (= 1 retries))
     (is (= :unknown-host (:type error)))))
 
-(def channel-count
-  (fn->> (async/into []) async/<!! count))
-
 (deftest ^:integration vague-error
   (with-local-server [{:status 400}]
     (fn [{:keys [url]}]
@@ -101,11 +98,6 @@
     (apply f args)
     (finally
       (DateTimeUtils/setCurrentMillisOffset 0))))
-
-(defn lose-msecs [t]
-  (time/minus
-   t
-   (time/millis (time/milli t))))
 
 (defn response [status & [{:keys [body headers] :or {body (rand-string)}}]]
   {:status status
@@ -136,6 +128,11 @@
     (is (= :request-time-too-skewed type))
     (is (= (* 1000 60 5) time-offset))
     (is (= client-time (first (request-dates reqs))))))
+
+(defn lose-msecs [t]
+  (time/minus
+   t
+   (time/millis (time/milli t))))
 
 (deftest ^:integration skew-retry
   (let [client-time (lose-msecs (time/now))

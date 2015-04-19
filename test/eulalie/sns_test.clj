@@ -8,5 +8,5 @@
   (is (not (:error
             (<?! (eulalie/issue-request!
                   sns/service
-                  creds
-                  {:target :list-subscriptions}))))))
+                  {:target :list-subscriptions
+                   :creds  creds}))))))

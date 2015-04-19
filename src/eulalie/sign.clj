@@ -71,29 +71,31 @@
                        (sign* service-name)
                        (sign* MAGIC-SUFFIX)
                        (sign* (signable-string date scope canon-req)))]
-    (log/info canon-req)
-
     [headers (.toLowerCase (DatatypeConverter/printHexBinary signature))]))
 
+(defn required-headers [{{:keys [token]} :creds :keys [date endpoint]}]
+  (cond->
+      {:x-amz-date (time-format/unparse aws-date-time-format date)
+       :host (host-header endpoint)}
+    token (assoc :x-amz-security-token token)))
+
 (defn aws4-sign
-  [service-name creds {:keys [time-offset endpoint content date] :as r}]
-  (log/debug (with-out-str (clojure.pprint/pprint r)))
-  (let [{:keys [token access-key] :as creds} (sanitize-creds creds)
-        date    (or (some-> date time-coerce/from-long)
-                    (signature-date (or time-offset 0)))
-        hash    (digest/sha-256 content)
-        headers (merge
-                 {:x-amz-date (time-format/unparse aws-date-time-format date)
-                  :host (host-header endpoint)}
-                 (when token
-                   {:x-amz-security-token token}))
-        r       (add-headers r headers)
+  [service-name
+   {:keys [time-offset endpoint content date] :as r}]
+
+  (let [{{:keys [token access-key] :as creds} :creds date :date :as r}
+        (-> r
+            (assoc :date (or (some-> date time-coerce/from-long)
+                             (signature-date (or time-offset 0))))
+            (update-in [:creds] sanitize-creds))
+        r   (add-headers r (required-headers r))
+
+        hash  (digest/sha-256 content)
         scope (get-scope service-name endpoint date)
         [header-names signature]  (compute-signature service-name creds r date scope hash)
         auth-params {"Credential" (slash-join access-key scope)
                      "SignedHeaders" (string/join ";" header-names)
                      "Signature" signature}]
-    (log/debug "Using date" date)
     (add-headers
      r
      {:authorization (make-header-value ALGORITHM auth-params)

@@ -26,7 +26,7 @@
   (transform-response [this resp])
   (transform-response-error [this resp])
   (request-backoff    [this retry-count error])
-  (sign-request       [this creds req]))
+  (sign-request       [this req]))
 
 (defn prepare-req
   [{:keys [endpoint headers] :as req} service]
@@ -68,23 +68,23 @@
           [:error error])))))
 
 (defn issue-request!
-  [service creds request]
+  [service request]
   (go-catching
-   (loop [request (prepare-req request service)
-          retries 0]
-     (let [request' (sign-request service creds request)
-           aws-resp (-> request' req->http-kit channel-request! <?)
-           result   {:response (dissoc aws-resp :opts)
-                     :retries  retries
-                     :request  request'}
-           [label value] (handle-result service result)]
-       (condp = label
-         :ok    (assoc result :body  value)
-         :error (assoc result :error value)
-         :retry (let [{:keys [timeout error]} value
-                      request (merge request (select-keys error [:time-offset]))]
-                  (some-> timeout <?)
-                  (recur request (inc retries))))))))
+    (loop [request (prepare-req request service)
+           retries 0]
+      (let [request' (sign-request service request)
+            aws-resp (-> request' req->http-kit channel-request! <?)
+            result   {:response (dissoc aws-resp :opts)
+                      :retries  retries
+                      :request  request'}
+            [label value] (handle-result service result)]
+        (condp = label
+          :ok    (assoc result :body  value)
+          :error (assoc result :error value)
+          :retry (let [{:keys [timeout error]} value
+                       request (merge request (select-keys error [:time-offset]))]
+                   (some-> timeout <?)
+                   (recur request (inc retries))))))))
 
 (defn issue-request!! [& args]
   (<?! (apply issue-request! args)))
@@ -92,16 +92,16 @@
 (def make-client-state (partial merge {:jvm-time-offset 0}))
 
 (let [client-state (atom (make-client-state))]
-  (defn issue-request!* [service creds {:keys [time-offset] :as request}]
+  (defn issue-request!* [service {:keys [time-offset] :as request}]
     (go-catching
-     (let [request (cond-> request
-                     (not time-offset)
-                     (assoc :time-offset
-                            (-> client-state deref :jvm-time-offset)))
-           response (<? (issue-request! creds service request))]
-       (swap! client-state assoc
-              :jvm-time-offset (-> response :request :time-offset))
-       response)))
+      (let [request (cond-> request
+                      (not time-offset)
+                      (assoc :time-offset
+                             (-> client-state deref :jvm-time-offset)))
+            response (<? (issue-request! service request))]
+        (swap! client-state assoc
+               :jvm-time-offset (-> response :request :time-offset))
+        response)))
 
   (defn issue-request!!* [& args]
     (<?! (apply issue-request!* args))))

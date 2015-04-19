@@ -30,11 +30,11 @@
            [com.amazonaws.services.dynamodbv2.model.transform
             DescribeTableRequestMarshaller]))
 
-(def ^:dynamic *creds* {:secret-key "lol a secret key"
-                        :access-key "rofl"})
+(def creds {:secret-key "lol a secret key"
+            :access-key "rofl"})
 
-(def ^:dynamic *overrides* {:service-name "webservice"})
-(def ^:dynamic *endpoint* (url "https://dynamodb.us-east-1.amazonaws.com"))
+(def overrides {:service-name "webservice"})
+(def endpoint (url "https://dynamodb.us-east-1.amazonaws.com"))
 
 (defn ^TestableAWS4Signer aws4-signer* [date]
   (doto (TestableAWS4Signer. true)
@@ -52,24 +52,26 @@
 (deftest aws4
   (let [date    (Date.)
         signer  (aws4-signer* date)
-        creds   (BasicAWSCredentials. (:access-key *creds*) (:secret-key *creds*))
 
         ^Request aws-req
         (doto (.marshall
                (DescribeTableRequestMarshaller.)
                (DescribeTableRequest. "table-name"))
-          (.setEndpoint (java.net.URI. (str *endpoint*))))]
+          (.setEndpoint (java.net.URI. (str endpoint))))]
 
-    (.sign signer aws-req creds)
+    (.sign signer aws-req (BasicAWSCredentials.
+                           (:access-key creds)
+                           (:secret-key creds)))
 
     (let [{auth "Authorization" :as headers} (into {} (.getHeaders aws-req))
           headers (dissoc headers "Authorization")
           req {:content (-> aws-req .getContent slurp)
                :date (.getTime date)
-               :endpoint *endpoint*
+               :endpoint endpoint
                :method :post
-               :headers headers}
-          auth' (-> (aws4-sign "dynamodb" *creds* req)
+               :headers headers
+               :creds creds}
+          auth' (-> (aws4-sign "dynamodb" req)
                     :headers
                     :authorization)]
       (is (= (decompose-auth auth) (decompose-auth auth'))))))

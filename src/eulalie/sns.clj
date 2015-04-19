@@ -35,8 +35,8 @@
   (request-backoff [_ retry-count error]
     (default-retry-backoff retry-count error))
 
-  (sign-request [_ creds req]
-    (sign/aws4-sign "sns" creds req)))
+  (sign-request [_ req]
+    (sign/aws4-sign "sns" req)))
 
 (def service
   (SNSService.

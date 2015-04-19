@@ -3,7 +3,7 @@
 (def attr-keys
   #{:unprocessed-keys :attribute-updates :key-conditions
     :query-filter :scan-filter :expected :request-items
-    :attribute-definitions :local-secondary-indexes 
+    :attribute-definitions :local-secondary-indexes
     :global-secondary-indexes :key-schema  :global-secondary-index-updates
     :attr})
 
@@ -24,7 +24,9 @@
     :projection             :nest
     :provisioned-throughput :nest
     :consumed-capacity      :nest
-    :update :nest}
+    :update                 :nest
+    :create                 :nest
+    :delete                 :nest}
    (zipmap keyword-keys (repeat :keys))
    (zipmap enum-keys    (repeat :enum))
    (zipmap attr-keys    (repeat :attr))))
@@ -32,11 +34,11 @@
 (def response-key-types
   (merge
    request-key-types
-   
+
    {:table :nest
     :table-description :nest
     :expression-attribute-names :keys}
-         
+
    (zipmap #{:local-secondary-indexes
              :global-secondary-indexes
              :item-collection-metrics
