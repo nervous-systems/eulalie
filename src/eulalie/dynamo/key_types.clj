@@ -2,7 +2,7 @@
 
 (def attr-keys
   #{:unprocessed-keys :attribute-updates :key-conditions
-    :query-filter :scan-filter :expected :request-items
+    :query-filter :expected :request-items
     :attribute-definitions :local-secondary-indexes
     :global-secondary-indexes :key-schema  :global-secondary-index-updates
     :attr})

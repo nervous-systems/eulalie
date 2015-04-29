@@ -8,9 +8,6 @@
             [cheshire.core :as cheshire]
             [camel-snake-kebab.core :refer [->CamelCaseString ->kebab-case-keyword]]))
 
-;; FIXME how do we handle errors in the body like {__type:} in a
-;; general way?
-
 (defn body->error [{:keys [__type message]}]
   (when-let [t (some-> __type
                        not-empty
