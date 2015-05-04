@@ -38,9 +38,6 @@
                       (Thread/sleep 1000)
                       (recur)))))))
 
-(defn await-status!! [table status]
-  (<?! (await-status! table status)))
-
 (defn keys= [exp act ks]
   (= (select-keys exp ks) (select-keys act ks)))
 
