@@ -5,7 +5,8 @@
             [clojure.string :as string]
             [clojure.algo.generic.functor :as functor]
             [clj-time.core :as clj-time]
-            [clj-time.coerce]))
+            [clj-time.coerce])
+  (:import java.nio.charset.Charset))
 
 (defmethod functor/fmap clojure.lang.Keyword [f v] (f v))
 (defmethod functor/fmap :default [f v] (f v))
@@ -145,3 +146,8 @@
 
 (defn msecs-now []
   (clj-time.coerce/to-long (clj-time/now)))
+
+(def utf-8 (Charset/forName "UTF-8"))
+
+(defn get-utf8-bytes ^bytes [^String s]
+  (.getBytes s ^Charset utf-8))

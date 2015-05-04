@@ -11,12 +11,12 @@
 ;; FIXME how do we handle errors in the body like {__type:} in a
 ;; general way?
 
-(defn body->error [{:keys [__type message]}]
+(defn body->error [{:keys [__type message Message]}]
   (when-let [t (some-> __type
                        not-empty
                        (from-last-match "#")
                        ->kebab-case-keyword)]
-    {:type t :message message}))
+    {:type t :message (or Message message)}))
 
 (defn req-target [prefix {:keys [target]}]
   (str prefix (->camel-s target)))

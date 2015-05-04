@@ -5,7 +5,8 @@
    [cemerick.url :refer [url]]
    [eulalie :refer :all]
    [eulalie.util :refer :all]
-   [clojure.test :refer :all]))
+   [clojure.test :refer :all])
+  (:import [clojure.lang ExceptionInfo]))
 
 (defn issue [target content & [req-overrides]]
   (let [req (merge
@@ -18,24 +19,23 @@
     (go-catching
       (let [{:keys [error] :as resp} (<? (issue-request! req))]
         (if (not-empty error)
-          (throw (Exception. (pr-str error)))
+          (throw (ex-info (pr-str error) error))
           resp)))))
 
 (defn issue* [target content & [req-overrides]]
   (-> (issue target content req-overrides) <?! :body))
 
-(defn await-status! [table status]
+(defn await-status!! [table status]
   (go-catching
     (loop []
       (let [status' (-> (issue* :describe-table {:table-name table})
-                        <?
                         :table
                         :table-status)]
 
         (cond (nil? status')     nil
               (= status status') status'
               :else (do
-                      (<? (async/timeout 1000))
+                      (Thread/sleep 1000)
                       (recur)))))))
 
 (defn await-status!! [table status]
@@ -79,9 +79,12 @@
 
 (use-fixtures :once
   (fn [f]
-    (when-not (issue* :describe-table {:table-name table})
-      (issue* :create-table create-table-req)
-      (await-status!! table :active))
+    (try
+      (issue* :describe-table {:table-name table})
+      (catch ExceptionInfo e
+        (when (-> e ex-data :type (= :resource-not-found-exception)) 
+          (issue* :create-table create-table-req) 
+          (await-status!! table :active))))
     (f)))
 
 (defn sets= [x y]
@@ -137,7 +140,7 @@
   `(with-items* ~items (fn [] ~@body)))
 
 (deftest ^:integration ^:aws put-item-conditional
-  (let [attrs (assoc item-attrs :job {:S "Fluffer"})]
+  (let [attrs (assoc item-attrs :job {:S "Flouncer"})]
     (with-items {table [attrs]}
       (is (= {:attributes attrs}
              (issue*
@@ -147,7 +150,7 @@
                :expression-attribute-values
                {":maximum" {:N "30"}
                 ":minimum" {:N "28"}
-                ":job"     {:S "Fluffer"}}
+                ":job"     {:S "Flouncer"}}
                :expression-attribute-names {:#IQ :age}
                :condition-expression (str "#IQ between :minimum and :maximum"
                                           " and job = :job")
@@ -219,7 +222,7 @@
              :expression-attribute-names {:#j :job}
              :expression-attribute-values
              {":s1" {:S "Programmer"}
-              ":s2" {:S "Fluffer"}}
+              ":s2" {:S "Flouncer"}}
              :filter-expression "#j = :s1 OR #j = :s2"
              :projection-expression [:age :#j]}))))))
 
@@ -228,7 +231,7 @@
   ([name age] {:name {:S name} :age {:N age}}))
 
 (deftest ^:integration ^:aws scan
-  (with-items {table [(item "Moe" "29" {:job {:S "Fluffer"}})
+  (with-items {table [(item "Moe" "29" {:job {:S "Flouncer"}})
                       (item "Joe" "46" {:job {:S "Programmer"}})
                       (item "Paul" "1" {:job {:S "Ambassador"}})]}
     (let [{:keys [consumed-capacity] :as resp}
@@ -236,7 +239,7 @@
            :scan
            {:table-name table
             :scan-filter {:job {:attribute-value-list
-                                [{:S "Fluffer"} {:S "Programmer"}]
+                                [{:S "Flouncer"} {:S "Programmer"}]
                                 :comparison-operator :between}}
             :return-consumed-capacity :total
             :select :count})]
@@ -244,9 +247,9 @@
       (is (maps= {:table-name table} consumed-capacity)))))
 
 (deftest ^:integration ^:aws scan-expression
-  (let [target (item "Moe" "29" {:job {:S "Fluffer"}})]
-    (with-items {table [target
-                        (item "Joe" "30" {:job {:S "Ambassador"}})]}
+  (let [job "\u00a5123Flouncer"
+        target (item "Moe" "29" {:job {:S job}})]
+    (with-items {table [target (item "Joe" "30" {:job {:S "Ambassador"}})]}
       (is (maps=
            {:items [(select-keys target #{:name :age})]}
            (issue*
@@ -254,9 +257,8 @@
             {:table-name table
              :expression-attribute-names {:#j :job :#name :name}
              :expression-attribute-values
-             {":s1" {:S "Fluffer"}
-              ":s2" {:S "Programmer"}}
-             :filter-expression ":s1 <= #j AND #j <= :s2"
+             {":s1" {:S job}}
+             :filter-expression ":s1 = #j"
              :projection-expression [:age :#name]}))))))
 
 (defn batch-get [m]

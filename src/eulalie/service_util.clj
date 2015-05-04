@@ -10,8 +10,7 @@
      ->CamelCaseString
      ->kebab-case-keyword]]
    [camel-snake-kebab.extras :refer [transform-keys]])
-  (:import java.nio.charset.Charset
-           java.util.zip.CRC32))
+  (:import java.util.zip.CRC32))
 
 (defn concretize-port [{:keys [protocol port] :as u}]
   (if-not (= port -1)
@@ -20,11 +19,6 @@
               (condp = protocol
                 "http" 80
                 "https" 443))))
-
-(def utf-8 (Charset/forName "UTF-8"))
-
-(defn get-utf8-bytes ^bytes [^String s]
-  (.getBytes s ^Charset utf-8))
 
 ;; clj-time's :rfc882 formatter uses Z, whereas RFC 882 specifies the
 ;; equivalent of either Z or z.  AWS uses z.
@@ -104,6 +98,10 @@
 (defn response-checksum-ok? [{:keys [headers body]}]
   (let [crc (some-> headers :x-amz-crc32 Long/parseLong)]
     (or (not crc)
+        ;; We're not going to calculate the checksum of gzipped responses, since
+        ;; we need access to the raw bytes - look into how to do this with
+        ;; httpkit
+        (= (:content-encoding headers) "gzip")
         (= crc (.getValue
                 (doto (CRC32.)
                   (.update (get-utf8-bytes body))))))))

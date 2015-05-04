@@ -63,9 +63,9 @@
 (defn compute-signature
   [service-name creds {:keys [endpoint] :as r} date scope hash]
   (let [[headers canon-req] (canonical-request r hash)
-        sign*     (fn [^String s k] (sign (.getBytes s) k HMAC-SHA256))
+        sign*     (fn [^String s k] (sign (get-utf8-bytes s) k HMAC-SHA256))
         signature (->> (str KEY-PREFIX (:secret-key creds))
-                       .getBytes
+                       get-utf8-bytes
                        (sign* (time-format/unparse aws-date-format date))
                        (sign* (get-or-calc-region service-name (:host endpoint)))
                        (sign* service-name)
