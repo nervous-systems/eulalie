@@ -6,6 +6,7 @@
             [eulalie.util :refer :all]
             [eulalie :refer :all]
             [cheshire.core :as cheshire]
+            [clojure.core.async :as async]
             [camel-snake-kebab.core :refer [->CamelCaseString ->kebab-case-keyword]]))
 
 ;; FIXME how do we handle errors in the body like {__type:} in a
@@ -20,6 +21,18 @@
 
 (defn req-target [prefix {:keys [target]}]
   (str prefix (->camel-s target)))
+
+(let [scale-factor   25
+      max-backoff-ms (* 20 1000)
+      max-retries    9]
+  (defn backoff [retries]
+    (cond (< retries 0) nil
+          (< max-retries retries) (async/timeout max-backoff-ms)
+          :else (-> 1
+                    (bit-shift-left retries)
+                    (* scale-factor)
+                    (min max-backoff-ms)
+                    async/timeout))))
 
 (defrecord DynamoService [endpoint target-prefix max-retries]
   AmazonWebService
@@ -42,7 +55,7 @@
     (some-> resp :body (cheshire/decode true) body->error))
 
   (request-backoff [_ retry-count error]
-    (default-retry-backoff retry-count error)) ;; wrong
+    (backoff retry-count))
 
   (sign-request [_ req]
     (sign/aws4-sign "dynamodb" req)))

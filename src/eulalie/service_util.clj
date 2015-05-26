@@ -15,10 +15,10 @@
 (defn concretize-port [{:keys [protocol port] :as u}]
   (if-not (= port -1)
     u
-    (assoc-in u [:port]
-              (condp = protocol
-                "http" 80
-                "https" 443))))
+    (assoc u :port
+           (case protocol
+             "http" 80
+             "https" 443))))
 
 ;; clj-time's :rfc882 formatter uses Z, whereas RFC 882 specifies the
 ;; equivalent of either Z or z.  AWS uses z.
