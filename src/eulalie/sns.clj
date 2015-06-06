@@ -63,7 +63,18 @@
 (defmulti  prepare-body (fn [target body] target))
 (defmethod prepare-body :default [_ body] body)
 (defmethod prepare-body :create-platform-application [_ {:keys [attrs] :as body}]
-  (into body (format-attr-entries (:attrs body))))
+  (conj body (format-attr-entries (:attrs body))))
+
+(defn list->map [prefix l]
+  (->> l
+       (map-indexed
+        (fn [i v] [(str prefix ".member." (inc i)) v]))
+       (into {})))
+
+(defmethod prepare-body :add-permission [_ {:keys [aws-accounts actions] :as body}]
+  (conj body
+        (list->map "AWSAccountId" aws-accounts)
+        (list->map "ActionName" actions)))
 
 (defmulti  prepare-message-value (fn [t value] t))
 (defmethod prepare-message-value :default [_ v] v)
