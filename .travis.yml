@@ -5,5 +5,5 @@ env:
     global:
         - secure: "IdbXgk7c8eeFClcp3chVxgEW5igiufAYWo7RWP4gpQVOigCdaPc6x07HQL40GpAsR8n/uvJKwO1UIFP00C4wGJTCDl82SmuIykv0NLczENyR8loRU6W8xXwQQhjsNyuFs2IoAqoqdPO7BgNvQyo9N+k8R3r0/Uic3PJ7Xp1Gv8s="
         - secure: "NJjtmCqg0DnRSP+RX9+Ol5DxEloTI7NgCuHm9cFszG5tvBkc+GLebbhulE6oTXot7zt7bHVECbcRwct7iOHJcz58Tl9bOdCi8bO1yo6/Q0T/dz4ZSrM7Ofn50Yn7sO1bh3J76VkYad6NTiYAmv2S4c8/AwrqkLyiAnYlbpRgkDY="
-	- secure: "jP0JHBe5kn+P1HWTgEFLVt6jKxVX2fyzoy25CkSTbcDfuw7l8r108cEipUygsrWTbY4YmWafWZ4GBqQGJMa6rW5Ie47U8+SFbclvK5a521hgA6Mykl/y/RGqKaNKe9wrb2yJJJMJ6LZpEK62ImYl1oZ6JmflCW9EFfyUb5CP+DY="
+        - secure: "jP0JHBe5kn+P1HWTgEFLVt6jKxVX2fyzoy25CkSTbcDfuw7l8r108cEipUygsrWTbY4YmWafWZ4GBqQGJMa6rW5Ie47U8+SFbclvK5a521hgA6Mykl/y/RGqKaNKe9wrb2yJJJMJ6LZpEK62ImYl1oZ6JmflCW9EFfyUb5CP+DY="
 
