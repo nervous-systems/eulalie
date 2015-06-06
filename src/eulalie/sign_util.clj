@@ -9,11 +9,10 @@
 
 (def trim (fn-some-> string/trim))
 
-(def sanitize-creds
-  (map-rewriter
-   {:access-key trim
-    :secret-key trim
-    :token      trim}))
+(defn sanitize-creds [m]
+  (into {}
+    (for [[k v] m]
+      [k (string/trim v)])))
 
 (defn slash-join [& rest]
   (string/join "/" rest))
