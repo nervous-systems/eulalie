@@ -110,6 +110,7 @@
 (def aws-date-time-format (time-format/formatters :basic-date-time-no-ms))
 
 (def ->camel-k ->CamelCaseKeyword)
+(def ->kebab-k ->kebab-case-keyword)
 (def ->camel-s ->CamelCaseString)
 
 (defn ->camel [x]

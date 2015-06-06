@@ -79,8 +79,8 @@
     (try
       (issue* :describe-table {:table-name table})
       (catch ExceptionInfo e
-        (when (-> e ex-data :type (= :resource-not-found-exception)) 
-          (issue* :create-table create-table-req) 
+        (when (-> e ex-data :type (= :resource-not-found-exception))
+          (issue* :create-table create-table-req)
           (await-status!! table :active))))
     (f)))
 
