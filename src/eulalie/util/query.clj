@@ -2,6 +2,8 @@
   eulalie.util.query
   (:require [camel-snake-kebab.core :as csk]
             [camel-snake-kebab.extras :as csk-extras]
+            [eulalie.util :as util]
+            [clojure.string :as str]
             [clojure.walk :as walk]))
 
 (defn translate-enums [req enum-keys]
@@ -12,45 +14,47 @@
        m))
    req enum-keys))
 
-(defn kv->map
+(defn kv->dotted
   ;; AWS is all over the place.  sometimes key/value, sometimes Name/Value,
   ;; attribute vs. attributes, etc.
-  ([prefix k-name v-name attrs]
-   (into {}
-     (map-indexed
-      (fn [i [k v]]
-        (let [prefix (str prefix "." (inc i) ".")]
-          {(str prefix k-name) (csk/->CamelCaseString k)
-           (str prefix v-name) v}))
-      attrs)))
-  ([attrs]
-   (merge
-    (kv->map "attributes.entry" attrs "key" "value"))))
+  [prefix k-name v-name attrs]
+  (into {}
+    (map-indexed
+     (fn [i [k v]]
+       {[prefix (inc i) k-name] k
+        [prefix (inc i) v-name] v})
+     attrs)))
+
+(defn format-query-key [k]
+  (cond (vector? k)
+        (let [k (flatten k)]
+          (str/join "." (map format-query-key k)))
+        (string?  k) k
+        (keyword? k) (csk/->CamelCaseString k)
+        :else        (str k)))
 
 (defn format-query-request [m]
   (walk/postwalk
    (fn [x]
      (if (map? x)
-       ;; No case translation for keys which are already strings
        (into {} (for [[k v] x]
-                  [(cond-> k (keyword? k) csk/->CamelCaseString)
+                  [(format-query-key k)
                    (cond-> v (keyword? v) name)]))
        x))
    m))
 
-(defn list->map [prefix l]
+(defn list->dotted [prefix l]
   (->> l
        (map-indexed
-        (fn [i v] [(str prefix "." (inc i)) v]))
+        (fn [i v] [[prefix (inc i)] v]))
        (into {})))
 
-(defn map-list->map [prefix l]
+(defn map-list->dotted [prefix l]
   (->> l
        (mapcat
         (fn [i m]
-          (let [key-name (str prefix "." i ".")]
-            (for [[k v] m]
-              [(str key-name (name k)) v])))
+          (for [[k v] m]
+            [[prefix i k] v]))
         (iterate inc 1))
        (into {})))
 
@@ -60,22 +64,23 @@
   ;; confusion.  It's not supported for all lists (only both kinds of message
   ;; attributes)
   (let [value (if (= value :all) [:All] value)]
-    (list->map
+    (list->dotted
      member-name
      (cond->> value (:enum opts) (map csk/->CamelCaseString)))))
+
 (defmethod expand-sequence :kv [[_ member-name k-name v-name opts] value]
-  (kv->map
+  (kv->dotted
    member-name k-name v-name
    (cond->> value
      (:enum opts)
      (csk-extras/transform-keys csk/->CamelCaseString))))
+
 (defmethod expand-sequence :maps [[_ prefix opts] value]
-  (map-list->map
+  (map-list->dotted
    prefix
    (cond->> value
      (:enum opts)
-     (csk-extras/transform-keys
-      csk/->CamelCaseString))))
+     (csk-extras/transform-keys csk/->CamelCaseString))))
 
 (defn expand-sequences [body spec]
   (if-not spec

@@ -26,10 +26,14 @@
 (def content (comp ffirst vals))
 (def child-content (comp content child))
 
-(defn child-content->map [x node-name->key]
-  (into {}
-    (for [[node-name k] node-name->key]
-      [k (child-content x node-name)])))
+(defn child-content->map [x node-names]
+  (let [node-name->key
+        (if (map? node-names)
+          node-names
+          (into {} (for [n node-names] [n n])))]
+    (into {}
+      (for [[node-name k] node-name->key]
+        [k (child-content x node-name)]))))
 
 (defn string->xml-map [^String resp]
   (some->

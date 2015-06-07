@@ -1,5 +1,6 @@
 (ns eulalie.sqs
   (:require [camel-snake-kebab.core :as csk]
+            [camel-snake-kebab.extras :as csk-extras]
             [cemerick.url :as url]
             [cheshire.core :as json]
             [clojure.set :as set]
@@ -19,7 +20,7 @@
    :create-queue
    {:attrs   [:kv "Attribute" "Name" "Value" #{:enum}]}
    :delete-message-batch
-   {:entries [:map "DeleteMessageBatchRequestEntry"]}
+   {:messages [:maps "DeleteMessageBatchRequestEntry"]}
    :get-queue-attributes
    {:attrs   [:list "AttributeName" #{:enum}]}
    :set-queue-attributes
@@ -45,17 +46,27 @@
                     :number :Number
                     :binary :Binary} a-type a-type)
         value-type ({:Number :String} data-type data-type)]
-    {"Name" a-name
-     "Value.DataType" data-type
-     (str "Value." (name value-type) "Value") a-value}))
+    {:name a-name
+     [:value :data-type] data-type
+     [:value (str (name value-type) "Value")] a-value}))
+
+(defn message-attrs->dotted [attrs]
+  (q/map-list->dotted
+   :message-attribute
+   (for [[a-name [a-type a-value]] attrs]
+     (prepare-message-attrs a-name a-type a-value))))
 
 (defmethod prepare-body :send-message [_ {:keys [attrs] :as body}]
-  ;; The API is pretty messed up
+  (conj body (message-attrs->dotted attrs)))
+
+(defn prepare-batch-message [{:keys [attrs] :as message}]
+  (conj message (message-attrs->dotted attrs)))
+
+(defmethod prepare-body :send-message-batch [_ {:keys [messages] :as body}]
   (conj body
-        (q/map-list->map
-         "MessageAttribute"
-         (for [[a-name [a-type a-value]] attrs]
-           (prepare-message-attrs a-name a-type a-value)))))
+        (q/map-list->dotted
+         :send-message-batch-request-entry
+         (map prepare-batch-message messages))))
 
 (defmulti  restructure-response (fn [target body] target))
 (defmethod restructure-response :default [_ body] body)
@@ -101,6 +112,23 @@
 (defmethod restructure-response :receive-message [_ body]
   (for [message (x/children body :message)]
     (restructure-message message)))
+
+(defn restructure-successful-deletes [body]
+  (->> (x/children body :delete-message-batch-result-entry)
+       (map #(x/child-content % :id))
+       (into #{})))
+
+(defn restructure-failed-deletes [body]
+  (->> (x/children body :batch-result-error-entry)
+       (map #(x/child-content->map % #{:code :id :message :sender-fault}))
+       (map (juxt :id identity))
+       (into {})))
+
+(defmethod restructure-response :delete-message-batch [_ body]
+  {:succeeded
+   (restructure-successful-deletes body)
+   :failed
+   (restructure-failed-deletes body)})
 
 (let [target->elem
       {:create-queue  [:one :queue-url]

@@ -87,3 +87,30 @@
         (is (= {:attribute-1 [:number "71"]
                 :different   [:string "fourteen"]}
                (:attrs msg)))))))
+
+(deftest list-queues+
+  (let [url  (create-queue*)
+        urls (into #{} (sqs!! :list-queues {}))]
+    (is (urls url))))
+
+(deftest delete-message-batch+
+  (with-transient-queue
+    (fn [{q-url :url}]
+      (let [m-id (send-message* q-url)]
+        (let [[{:keys [receipt]}]
+              (sqs!! :receive-message
+                     {:queue-url q-url
+                      :wait-time-seconds 2})
+              {:keys [succeeded] :as x}
+              (sqs!! :delete-message-batch
+                     {:queue-url q-url
+                      :messages [{:id "0" :receipt-handle receipt}]})]
+          (is (succeeded "0")))))))
+
+(deftest delete-message-batch+error
+  (let [q-url (create-queue*)
+        {:keys [failed]}
+        (sqs!! :delete-message-batch
+               {:queue-url q-url
+                :messages [{:id "0" :receipt-handle "garbage"}]})]
+    (is (failed "0"))))

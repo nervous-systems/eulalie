@@ -24,10 +24,6 @@
      :set-endpoint-attributes
      {:attrs kv-spec}}))
 
-;; Ideally we'd have an intermediate representation so e.g. the enum translation
-;; could also apply to values embedded in sequences, instead of having something
-;; separate for top-level values.
-
 (def enum-keys-out #{:attribute-name})
 
 (defmulti  prepare-body (fn [target body] target))
