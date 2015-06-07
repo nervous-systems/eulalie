@@ -5,18 +5,7 @@
             [eulalie.test-util :refer :all]
             [clojure.test :refer :all]))
 
-(def aws-account-id "510355070671")
-
-(defn sns!! [target body]
-  (let [{:keys [error body]}
-        (eulalie/issue-request!!
-         {:service :sns
-          :creds   creds
-          :target  target
-          :body    body})]
-    (if error
-      (throw (ex-info (name (:type error)) error))
-      body)))
+(def sns!! (make-issuer :sns))
 
 (defn create-topic* []
   (x/child-content
@@ -31,8 +20,6 @@
          :actions [:publish :get-topic-attributes]
          :label "eulalie-add-permission-test"
          :topic-arn (create-topic*)}))))
-
-(def gcm-api-key (get (System/getenv) "GCM_API_KEY"))
 
 (defn create-gcm-application* []
   (x/child-content

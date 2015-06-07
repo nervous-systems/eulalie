@@ -50,22 +50,32 @@
         (fn [i m]
           (let [key-name (str prefix "." i ".")]
             (for [[k v] m]
-              [(str key-name k) v])))
+              [(str key-name (name k)) v])))
         (iterate inc 1))
        (into {})))
 
 (defmulti  expand-sequence (fn [[tag] value] tag))
 (defmethod expand-sequence :list [[_ member-name opts] value]
-  (list->map member-name
-             (cond->> value
-               (:enum opts)
-               (map csk/->CamelCaseString))))
+  ;; The API is super messed up.  We're raising :all out of the list to avoid
+  ;; confusion.  It's not supported for all lists (only both kinds of message
+  ;; attributes)
+  (let [value (if (= value :all) [:All] value)]
+    (list->map
+     member-name
+     (cond->> value (:enum opts) (map csk/->CamelCaseString)))))
 (defmethod expand-sequence :kv [[_ member-name k-name v-name opts] value]
-  (kv->map member-name k-name v-name
-           (cond->> value
-             (:enum opts)
-             (csk-extras/transform-keys
-              csk/->CamelCaseString))))
+  (kv->map
+   member-name k-name v-name
+   (cond->> value
+     (:enum opts)
+     (csk-extras/transform-keys csk/->CamelCaseString))))
+(defmethod expand-sequence :maps [[_ prefix opts] value]
+  (map-list->map
+   prefix
+   (cond->> value
+     (:enum opts)
+     (csk-extras/transform-keys
+      csk/->CamelCaseString))))
 
 (defn expand-sequences [body spec]
   (if-not spec
@@ -77,7 +87,6 @@
                (expand-sequence sub-spec v))
          body))
      body spec)))
-
 
 (defn default-request [{:keys [max-retries endpoint]} req]
   (merge {:max-retries max-retries
