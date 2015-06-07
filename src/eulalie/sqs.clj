@@ -17,9 +17,9 @@
    :change-message-visibility-batch
    {:entries [:list "ChangeMessageVisibilityBatchRequestEntry"]}
    :create-queue
-   {:attrs   [:kv   "Attribute" "Name" "Value" #{:enum}]}
+   {:attrs   [:kv "Attribute" "Name" "Value" #{:enum}]}
    :delete-message-batch
-   {:entries [:map  "DeleteMessageBatchRequestEntry"]}
+   {:entries [:map "DeleteMessageBatchRequestEntry"]}
    :get-queue-attributes
    {:attrs   [:list "AttributeName" #{:enum}]}
    :set-queue-attributes
@@ -32,6 +32,7 @@
 (defmethod prepare-body :default [_ req] req)
 
 (defmethod prepare-body :get-queue-url [_ body]
+  ;; The case deviates from the other keys
   (set/rename-keys body {:queue-owner-aws-account-id
                          "QueueOwnerAWSAccountId"}))
 
@@ -56,18 +57,6 @@
          (for [[a-name [a-type a-value]] attrs]
            (prepare-message-attrs a-name a-type a-value)))))
 
-(let [target->elem
-      {:create-queue  [:one :queue-url]
-       :get-queue-url [:one :queue-url]
-       :list-queues   [:many :queue-url]
-       :list-dead-letter-source-queues [:many :queue-url]}]
-  (defn extract-response-value [target resp]
-    (if-let [[tag elem] (target->elem target)]
-      (case tag
-        :one  (x/child-content resp elem)
-        :many (map x/content (x/children resp elem)))
-      resp)))
-
 (defmulti  restructure-response (fn [target body] target))
 (defmethod restructure-response :default [_ body] body)
 
@@ -84,16 +73,19 @@
 (defmethod restructure-response :send-message [_ body]
   (x/child-content->map body {:message-id :id :md-5-of-message-body :md5}))
 
-(defn message-attributes [message]
+(defn message-attr->kv [attr]
+  (let [a-name (x/child-content attr :name)
+        {[type value] :value} (x/child attr :value)
+        type (keyword (x/child-content type :data-type))
+        in-type ({:Binary :binary
+                  :String :string
+                  :Number :number} type type)]
+    [(keyword a-name) [in-type (x/content value)]]))
+
+(defn message-attrs->map [message]
   (into {}
     (for [attr (x/children message :message-attribute)]
-      (let [a-name (x/child-content attr :name)
-            {[type value] :value} (x/child attr :value)
-            type (keyword (x/child-content type :data-type))
-            in-type ({:Binary :binary
-                      :String :string
-                      :Number :number} type type)]
-        [(keyword a-name) [in-type (-> value vals ffirst)]]))))
+      (message-attr->kv attr))))
 
 (defn restructure-message [message]
   (-> message
@@ -104,13 +96,23 @@
              {:body :body :md-5-of-body :md5
               :receipt-handle :receipt :message-id :id}))
       ;; User-defined attributes
-      (assoc :attrs (message-attributes message))))
+      (assoc :attrs (message-attrs->map message))))
 
 (defmethod restructure-response :receive-message [_ body]
   (for [message (x/children body :message)]
     (restructure-message message)))
 
-(def enum-keys-out #{})
+(let [target->elem
+      {:create-queue  [:one :queue-url]
+       :get-queue-url [:one :queue-url]
+       :list-queues   [:many :queue-url]
+       :list-dead-letter-source-queues [:many :queue-url]}]
+  (defn extract-response-value [target resp]
+    (if-let [[tag elem] (target->elem target)]
+      (case tag
+        :one  (x/child-content resp elem)
+        :many (map x/content (x/children resp elem)))
+      resp)))
 
 (defrecord SQSService [endpoint version max-retries]
   eulalie/AmazonWebService
@@ -120,7 +122,6 @@
       (assoc req :body
              (as-> body %
                (q/expand-sequences  % (target->seq-spec target))
-               (q/translate-enums   % enum-keys-out)
                (prepare-body target %)))))
 
   (transform-request [_ body]
