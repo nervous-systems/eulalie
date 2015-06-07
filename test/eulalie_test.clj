@@ -1,4 +1,4 @@
-(ns eulalie.eulalie-test
+(ns eulalie-test
   (:require
    [cemerick.url :refer [url]]
    [eulalie.service-util :refer [aws-date-time-format time->rfc822]]
