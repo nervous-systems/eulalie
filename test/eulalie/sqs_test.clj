@@ -1,6 +1,6 @@
 (ns eulalie.sqs-test
-  (:require [eulalie]
-            [eulalie.sqs :refer :all]
+  (:require [eulalie] :reload
+            [eulalie.sqs :refer :all] :reload
             [clojure.test :refer :all]
             [eulalie.test-util :as test-util]))
 
@@ -96,16 +96,16 @@
 (deftest delete-message-batch+
   (with-transient-queue
     (fn [{q-url :url}]
-      (let [m-id (send-message* q-url)]
-        (let [[{:keys [receipt]}]
-              (sqs!! :receive-message
-                     {:queue-url q-url
-                      :wait-time-seconds 2})
-              {:keys [succeeded] :as x}
-              (sqs!! :delete-message-batch
-                     {:queue-url q-url
-                      :messages [{:id "0" :receipt-handle receipt}]})]
-          (is (succeeded "0")))))))
+      (let [m-id (send-message* q-url)
+            [{:keys [receipt]}]
+            (sqs!! :receive-message
+                   {:queue-url q-url
+                    :wait-time-seconds 2})
+            {:keys [succeeded]}
+            (sqs!! :delete-message-batch
+                   {:queue-url q-url
+                    :messages [{:id "0" :receipt-handle receipt}]})]
+        (is (succeeded "0"))))))
 
 (deftest delete-message-batch+error
   (let [q-url (create-queue*)
@@ -114,3 +114,12 @@
                {:queue-url q-url
                 :messages [{:id "0" :receipt-handle "garbage"}]})]
     (is (failed "0"))))
+
+(deftest send-message-batch+
+  (let [q-url (create-queue*)
+        attrs  {:attribute-1 [:number 71]}
+        {:keys [succeeded] :as x}
+        (sqs!! :send-message-batch
+               {:queue-url q-url
+                :messages [{:id "0" :attrs attrs :message-body "Hello!"}]})]
+    (is (succeeded "0"))))

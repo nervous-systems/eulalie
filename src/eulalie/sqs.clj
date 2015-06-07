@@ -118,17 +118,38 @@
        (map #(x/child-content % :id))
        (into #{})))
 
-(defn restructure-failed-deletes [body]
-  (->> (x/children body :batch-result-error-entry)
-       (map #(x/child-content->map % #{:code :id :message :sender-fault}))
-       (map (juxt :id identity))
-       (into {})))
+(defn children-by-attr [parent unique-attr attrs]
+  (->> (map #(x/child-content->map % attrs) parent)
+       (group-by unique-attr)
+       (util/mapvals first)))
+
+(defn restructure-failed-batch [body]
+  (children-by-attr
+   (x/children body :batch-result-error-entry)
+   :id #{:code :id :message :sender-fault}))
 
 (defmethod restructure-response :delete-message-batch [_ body]
   {:succeeded
    (restructure-successful-deletes body)
    :failed
-   (restructure-failed-deletes body)})
+   (restructure-failed-batch body)})
+
+(defn restructure-successful-sends [body]
+  (children-by-attr
+   (x/children body :send-message-batch-result-entry)
+   :batch-id
+   {:id :batch-id :message-id :id :md-5-of-message-attributes :attr-md5
+    :md-5-of-message-body :body-md5}))
+
+(defn restructure-failed-sends [body]
+  (children-by-attr
+   (x/child body :batch-result-error-entry)))
+
+(defmethod restructure-response :send-message-batch [_ body]
+  {:succeeded
+   (restructure-successful-sends body)
+   :failed
+   (restructure-failed-batch body)})
 
 (let [target->elem
       {:create-queue  [:one :queue-url]
