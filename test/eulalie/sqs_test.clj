@@ -19,6 +19,8 @@
         (get-queue-url* q-name)
         (throw e)))))
 
+(defn delete-queue* [queue] (sqs!! :delete-queue {:queue-url queue}))
+
 (defn with-transient-queue [f]
   (let [q-name (str "eulalie-transient-" (gensym))
         q-url  (create-queue* q-name)]
@@ -28,7 +30,6 @@
         (delete-queue* q-url)))))
 
 (defn purge-queue*  [queue] (sqs!! :purge-queue  {:queue-url queue}))
-(defn delete-queue* [queue] (sqs!! :delete-queue {:queue-url queue}))
 
 (deftest get-queue-attributes+
   (with-transient-queue
