@@ -35,7 +35,8 @@
             (update-in [:body] #(transform-request service %))
             (update-in [:endpoint] concretize-port))]
     ;; this needs to go away, can't assume it can be counted now
-    (update-in req [:headers] merge {:content-length (count (get-utf8-bytes body))})))
+    (update-in req [:headers] merge
+               {:content-length (count (get-utf8-bytes body))})))
 
 (def ok? (fn-> :status (= 200)))
 
