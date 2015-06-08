@@ -10,7 +10,7 @@
             [eulalie.util.query :as q]
             [cheshire.core :as json]))
 
-(let [kv-spec [:kv [:attributes "entry"] "key" "value"]]
+(let [kv-spec [:kv [:attributes :entry] :key :value]]
   (def target->seq-spec
     {:add-permission
      {:accounts [:list ["AWSAccountId" :member]]
@@ -27,7 +27,7 @@
 (def enum-keys-out
   #{:attribute-name
     :action-name
-    #(and (= (first %) :attributes) (= (last %) "key"))})
+    #(and (= (first %) :attributes) (= (last %) :key))})
 
 (defmulti  prepare-body (fn [target body] target))
 (defmethod prepare-body :default [_ body] body)
