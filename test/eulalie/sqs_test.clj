@@ -22,7 +22,7 @@
 (defn delete-queue* [queue] (sqs!! :delete-queue {:queue-url queue}))
 
 (defn with-transient-queue [f]
-  (let [q-name (str "eulalie-transient-" (gensym))
+  (let [q-name (str "eulalie-transient-" (rand-int 0xFFFF))
         q-url  (create-queue* q-name)]
     (try
       (f {:name q-name :url q-url})
