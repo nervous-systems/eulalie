@@ -14,20 +14,25 @@
 (def target->seq-spec
   {:add-permission
    {:accounts [:list "AWSAccountId"]
-    :actions  [:list "ActionName" #{:enum}]}
+    :actions  [:list :action-name]}
    :change-message-visibility-batch
-   {:entries [:list "ChangeMessageVisibilityBatchRequestEntry"]}
+   {:messages [:maps :change-message-visibility-batch-request-entry]}
    :create-queue
-   {:attrs   [:kv "Attribute" "Name" "Value" #{:enum}]}
+   {:attrs   [:kv :attribute :name :value]}
    :delete-message-batch
-   {:messages [:maps "DeleteMessageBatchRequestEntry"]}
+   {:messages [:maps :delete-message-batch-request-entry]}
    :get-queue-attributes
-   {:attrs   [:list "AttributeName" #{:enum}]}
+   {:attrs   [:list :attribute-name]}
    :set-queue-attributes
-   {:attrs   [:list "Attribute" #{:enum}]}
+   {:attrs   [:list :attribute]}
    :receive-message
-   {:meta   [:list "AttributeName" #{:enum}]
-    :attrs  [:list "MessageAttributeName"]}})
+   {:meta   [:list :attribute-name]
+    :attrs  [:list :message-attribute-name]}})
+
+(def enum-keys-out
+  #{:action-name
+    :attribute-name
+    #(and (= (first %) :attribute) (= (last %) :name))})
 
 (defmulti  prepare-body (fn [target req] target))
 (defmethod prepare-body :default [_ req] req)
@@ -113,8 +118,8 @@
   (for [message (x/children body :message)]
     (restructure-message message)))
 
-(defn restructure-successful-deletes [body]
-  (->> (x/children body :delete-message-batch-result-entry)
+(defn children->id-set [node children-of]
+  (->> (x/children node children-of)
        (map #(x/child-content % :id))
        (into #{})))
 
@@ -130,7 +135,7 @@
 
 (defmethod restructure-response :delete-message-batch [_ body]
   {:succeeded
-   (restructure-successful-deletes body)
+   (children->id-set body :delete-message-batch-result-entry)
    :failed
    (restructure-failed-batch body)})
 
@@ -148,6 +153,12 @@
 (defmethod restructure-response :send-message-batch [_ body]
   {:succeeded
    (restructure-successful-sends body)
+   :failed
+   (restructure-failed-batch body)})
+
+(defmethod restructure-response :change-message-visibility-batch [_ body]
+  {:succeeded
+   (children->id-set body :change-message-visibility-batch-result-entry)
    :failed
    (restructure-failed-batch body)})
 
@@ -171,6 +182,7 @@
       (assoc req :body
              (as-> body %
                (q/expand-sequences  % (target->seq-spec target))
+               (q/translate-enums   % enum-keys-out)
                (prepare-body target %)))))
 
   (transform-request [_ body]

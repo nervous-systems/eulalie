@@ -10,11 +10,11 @@
             [eulalie.util.query :as q]
             [cheshire.core :as json]))
 
-(let [kv-spec [:kv "Attributes.entry" "key" "value" #{:enum}]]
+(let [kv-spec [:kv [:attributes "entry"] "key" "value"]]
   (def target->seq-spec
     {:add-permission
-     {:accounts [:list "AWSAccountId.member"]
-      :actions  [:list "ActionName.member" #{:enum}]}
+     {:accounts [:list ["AWSAccountId" :member]]
+      :actions  [:list [:action-name :member]]}
      :create-platform-application
      {:attrs kv-spec}
      :create-platform-endpoint
@@ -24,7 +24,10 @@
      :set-endpoint-attributes
      {:attrs kv-spec}}))
 
-(def enum-keys-out #{:attribute-name})
+(def enum-keys-out
+  #{:attribute-name
+    :action-name
+    #(and (= (first %) :attributes) (= (last %) "key"))})
 
 (defmulti  prepare-body (fn [target body] target))
 (defmethod prepare-body :default [_ body] body)
@@ -53,7 +56,6 @@
            :message (-> message
                         prepare-targeted-message
                         json/encode))))
-
 
 (defrecord SNSService [endpoint version max-retries]
   AmazonWebService

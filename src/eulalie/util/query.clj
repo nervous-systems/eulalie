@@ -2,17 +2,26 @@
   eulalie.util.query
   (:require [camel-snake-kebab.core :as csk]
             [camel-snake-kebab.extras :as csk-extras]
-            [eulalie.util :as util]
+            [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [eulalie.util :as util]))
+
+(defn enum-keys->matcher [keys-or-fns]
+  (apply some-fn
+         (for [v keys-or-fns]
+           (if (keyword? v)
+             #(if   (vector? %) (= v (first %)) (= v %))
+             #(when (vector? %) (v %))))))
 
 (defn translate-enums [req enum-keys]
-  (reduce
-   (fn [m k]
-     (if-let [v (m k)]
-       (assoc m k (csk/->CamelCaseString v))
-       m))
-   req enum-keys))
+  (let [matcher (enum-keys->matcher enum-keys)]
+    (into req
+      (for [[k v] req :when (matcher k)]
+        [k (csk/->CamelCaseString v)]))))
+
+(defn join-key-paths [& segments]
+  (vec (flatten (apply conj [] segments))))
 
 (defn kv->dotted
   ;; AWS is all over the place.  sometimes key/value, sometimes Name/Value,
@@ -21,8 +30,8 @@
   (into {}
     (map-indexed
      (fn [i [k v]]
-       {[prefix (inc i) k-name] k
-        [prefix (inc i) v-name] v})
+       {(join-key-paths prefix (inc i) k-name) k
+        (join-key-paths prefix (inc i) v-name) v})
      attrs)))
 
 (defn format-query-key [k]
@@ -46,7 +55,7 @@
 (defn list->dotted [prefix l]
   (->> l
        (map-indexed
-        (fn [i v] [[prefix (inc i)] v]))
+        (fn [i v] [(join-key-paths prefix (inc i)) v]))
        (into {})))
 
 (defn map-list->dotted [prefix l]
@@ -54,33 +63,23 @@
        (mapcat
         (fn [i m]
           (for [[k v] m]
-            [[prefix i k] v]))
+            [(join-key-paths prefix i k) v]))
         (iterate inc 1))
        (into {})))
 
 (defmulti  expand-sequence (fn [[tag] value] tag))
-(defmethod expand-sequence :list [[_ member-name opts] value]
+(defmethod expand-sequence :list [[_ member-name] value]
   ;; The API is super messed up.  We're raising :all out of the list to avoid
   ;; confusion.  It's not supported for all lists (only both kinds of message
   ;; attributes)
   (let [value (if (= value :all) [:All] value)]
-    (list->dotted
-     member-name
-     (cond->> value (:enum opts) (map csk/->CamelCaseString)))))
+    (list->dotted member-name value)))
 
-(defmethod expand-sequence :kv [[_ member-name k-name v-name opts] value]
-  (kv->dotted
-   member-name k-name v-name
-   (cond->> value
-     (:enum opts)
-     (csk-extras/transform-keys csk/->CamelCaseString))))
+(defmethod expand-sequence :kv [[_ member-name k-name v-name] value]
+  (kv->dotted member-name k-name v-name value))
 
-(defmethod expand-sequence :maps [[_ prefix opts] value]
-  (map-list->dotted
-   prefix
-   (cond->> value
-     (:enum opts)
-     (csk-extras/transform-keys csk/->CamelCaseString))))
+(defmethod expand-sequence :maps [[_ prefix] value]
+  (map-list->dotted prefix value))
 
 (defn expand-sequences [body spec]
   (if-not spec

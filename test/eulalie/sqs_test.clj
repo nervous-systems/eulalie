@@ -1,6 +1,6 @@
 (ns eulalie.sqs-test
-  (:require [eulalie] :reload
-            [eulalie.sqs :refer :all] :reload
+  (:require [eulalie]
+            [eulalie.sqs :refer :all]
             [clojure.test :refer :all]
             [eulalie.test-util :as test-util]))
 
@@ -93,14 +93,14 @@
         urls (into #{} (sqs!! :list-queues {}))]
     (is (urls url))))
 
+(defn receive-message* [q-url]
+  (sqs!! :receive-message {:queue-url q-url :wait-time-seconds 2}))
+
 (deftest delete-message-batch+
   (with-transient-queue
     (fn [{q-url :url}]
       (let [m-id (send-message* q-url)
-            [{:keys [receipt]}]
-            (sqs!! :receive-message
-                   {:queue-url q-url
-                    :wait-time-seconds 2})
+            [{:keys [receipt]}] (receive-message* q-url)
             {:keys [succeeded]}
             (sqs!! :delete-message-batch
                    {:queue-url q-url
@@ -118,8 +118,32 @@
 (deftest send-message-batch+
   (let [q-url (create-queue*)
         attrs  {:attribute-1 [:number 71]}
-        {:keys [succeeded] :as x}
+        {:keys [succeeded]}
         (sqs!! :send-message-batch
                {:queue-url q-url
                 :messages [{:id "0" :attrs attrs :message-body "Hello!"}]})]
     (is (succeeded "0"))))
+
+(deftest change-message-visibility+
+  (with-transient-queue
+    (fn [{q-url :url}]
+      (send-message* q-url)
+      (let [[{:keys [receipt]}] (receive-message* q-url)]
+        (is (sqs!! :change-message-visibility
+                   {:receipt-handle receipt
+                    :queue-url q-url
+                    :visibility-timeout 60}))))))
+
+(deftest change-message-visibility-batch+
+  (with-transient-queue
+    (fn [{q-url :url}]
+      (send-message* q-url)
+      (let [[{:keys [receipt]}] (receive-message* q-url)
+            {:keys [succeeded]}
+            (sqs!! :change-message-visibility-batch
+                   {:queue-url q-url
+                    :messages
+                    [{:id "0"
+                      :receipt-handle receipt
+                      :visibility-timeout 60}]})]
+        (is (succeeded "0"))))))
