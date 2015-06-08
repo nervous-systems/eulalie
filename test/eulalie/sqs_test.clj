@@ -33,10 +33,11 @@
 
 (deftest get-queue-attributes+
   (with-transient-queue
-    (fn [{q :q-url}]
+    (fn [{q :url}]
       (is (:maximum-message-size
-           (sqs!! :get-queue-attributes {:queue-url q
-                                         :attrs [:maximum-message-size]}))))))
+           (sqs!! :get-queue-attributes
+                  {:queue-url q
+                   :attrs [:maximum-message-size]}))))))
 
 (defn send-message* [queue & [attrs]]
   (sqs!! :send-message
@@ -87,11 +88,6 @@
                 :different   [:string "fourteen"]}
                (:attrs msg)))))))
 
-(deftest list-queues+
-  (let [url  (create-queue*)
-        urls (into #{} (sqs!! :list-queues {}))]
-    (is (urls url))))
-
 (defn receive-message* [q-url]
   (sqs!! :receive-message {:queue-url q-url :wait-time-seconds 2}))
 
@@ -107,12 +103,13 @@
         (is (succeeded "0"))))))
 
 (deftest delete-message-batch+error
-  (let [q-url (create-queue*)
-        {:keys [failed]}
-        (sqs!! :delete-message-batch
-               {:queue-url q-url
-                :messages [{:id "0" :receipt-handle "garbage"}]})]
-    (is (failed "0"))))
+  (with-transient-queue
+    (fn [{q-url :url}]
+      (let [{:keys [failed]}
+            (sqs!! :delete-message-batch
+                   {:queue-url q-url
+                    :messages [{:id "0" :receipt-handle "garbage"}]})]
+        (is (failed "0"))))))
 
 (deftest send-message-batch+
   (with-transient-queue
