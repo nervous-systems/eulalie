@@ -88,11 +88,6 @@
                                (= name :policy) q/nested-json-out
                                (= name :redrive-policy) q/nested-json-out)))
 
-(defmethod prepare-body :change-message-visibility [_ m]
-  (set/rename-keys m {:receipt :receipt-handle}))
-(defmethod prepare-body :delete-message [_ m]
-  (set/rename-keys m {:receipt :receipt-handle}))
-
 (defmulti  restructure-response (fn [target body] target))
 (defmethod restructure-response :default [_ body] body)
 
@@ -133,8 +128,7 @@
       (conj (attributes->map message))
       (conj (x/child-content->map
              message
-             {:body :body :md-5-of-body :md5
-              :receipt-handle :receipt :message-id :id}))
+             {:body :body :md-5-of-body :md5 :message-id :id}))
       ;; User-defined attributes
       (assoc :attrs (message-attrs->map message))
       (dissoc :message)))
