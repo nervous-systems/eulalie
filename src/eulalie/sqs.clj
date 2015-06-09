@@ -40,19 +40,18 @@
   (set/rename-keys body {:queue-owner-aws-account-id
                          "QueueOwnerAWSAccountId"}))
 
-(defn nested-json-out [m]
-  (->> m
-       (csk-extras/transform-keys csk/->camelCaseString)
-       json/encode))
+(defmethod prepare-body :receive-message [_ body]
+  (set/rename-keys body {:maximum :maximum-number-of-messages
+                         :wait-seconds :wait-time-seconds}))
 
 (defmethod prepare-body :create-queue
   [_ {{:keys [policy redrive-policy] :as attrs} :attrs :as body}]
   (assoc body
          :attrs
          (cond-> attrs
-           policy (assoc :policy (nested-json-out policy))
+           policy (assoc :policy (q/nested-json-out policy))
            redrive-policy (assoc :redrive-policy
-                                 (nested-json-out redrive-policy)))))
+                                 (q/nested-json-out redrive-policy)))))
 
 (defn prepare-message-attrs [a-name a-type a-value]
   (let [data-type ({:string :String
@@ -69,24 +68,30 @@
    (for [[a-name [a-type a-value]] attrs]
      (prepare-message-attrs a-name a-type a-value))))
 
-(defmethod prepare-body :send-message [_ {:keys [attrs] :as body}]
-  (conj body (message-attrs->dotted attrs)))
+(defn prepare-message [{:keys [attrs] :as message}]
+  (-> message
+      (conj (message-attrs->dotted attrs))
+      (set/rename-keys {:body :message-body})))
 
-(defn prepare-batch-message [{:keys [attrs] :as message}]
-  (conj message (message-attrs->dotted attrs)))
-
+(defmethod prepare-body :send-message [_ body]
+  (prepare-message body))
 (defmethod prepare-body :send-message-batch [_ {:keys [messages] :as body}]
   (conj body
         (q/map-list->dotted
          :send-message-batch-request-entry
-         (map prepare-batch-message messages))))
+         (map prepare-message messages))))
 
 (defmethod prepare-body :set-queue-attributes [_ {:keys [name value] :as body}]
   (assoc body
          [:attribute :name] name
          [:attribute :value] (cond-> value
-                               (= name :policy) nested-json-out
-                               (= name :redrive-policy) nested-json-out)))
+                               (= name :policy) q/nested-json-out
+                               (= name :redrive-policy) q/nested-json-out)))
+
+(defmethod prepare-body :change-message-visibility [_ m]
+  (set/rename-keys m {:receipt :receipt-handle}))
+(defmethod prepare-body :delete-message [_ m]
+  (set/rename-keys m {:receipt :receipt-handle}))
 
 (defmulti  restructure-response (fn [target body] target))
 (defmethod restructure-response :default [_ body] body)
@@ -99,14 +104,11 @@
            csk/->kebab-case-keyword)
        (x/child-content attr :value)])))
 
-(defn nested-json-in [s]
-  (csk-extras/transform-keys csk/->kebab-case-keyword (json/decode s true)))
-
 (defmethod restructure-response :get-queue-attributes [_ body]
   (let [{:keys [policy redrive-policy] :as attrs} (attributes->map body)]
     (cond-> attrs
-      policy (assoc :policy (nested-json-in policy))
-      redrive-policy (assoc :redrive-policy (nested-json-in redrive-policy)))))
+      policy (assoc :policy (q/nested-json-in policy))
+      redrive-policy (assoc :redrive-policy (q/nested-json-in redrive-policy)))))
 
 (defmethod restructure-response :send-message [_ body]
   (x/child-content->map body {:message-id :id :md-5-of-message-body :md5}))
@@ -185,17 +187,11 @@
    :failed
    (restructure-failed-batch body)})
 
-(let [target->elem
-      {:create-queue  [:one :queue-url]
-       :get-queue-url [:one :queue-url]
-       :list-queues   [:many :queue-url]
-       :list-dead-letter-source-queues [:many :queue-url]}]
-  (defn extract-response-value [target resp]
-    (if-let [[tag elem] (target->elem target)]
-      (case tag
-        :one  (x/child-content resp elem)
-        :many (map x/content (x/children resp elem)))
-      resp)))
+(def target->elem-spec
+  {:create-queue  [:one :queue-url]
+   :get-queue-url [:one :queue-url]
+   :list-queues   [:many :queue-url]
+   :list-dead-letter-source-queues [:many :queue-url]})
 
 (defrecord SQSService [endpoint version max-retries]
   eulalie/AmazonWebService
@@ -216,8 +212,7 @@
     (let [elem   (x/string->xml-map body)
           [tag]  (keys elem)
           target (keyword (util/to-first-match (name tag) "-response"))]
-      (->> elem
-           (extract-response-value target)
+      (->> (x/extract-response-value target elem target->elem-spec)
            (restructure-response target))))
 
   (transform-response-error [_ {:keys [body] :as resp}]

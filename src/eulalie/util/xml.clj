@@ -35,6 +35,13 @@
       (for [[node-name k] node-name->key]
         [k (child-content x node-name)]))))
 
+(defn attrs->map
+  [container & [{:keys [parent] :or {parent :entry}}]]
+  (into {}
+    (for [entry (children container parent)]
+      [(csk/->kebab-case-keyword (child-content entry :key))
+       (child-content entry :value)])))
+
 (defn string->xml-map [^String resp]
   (some->
    resp
@@ -54,3 +61,11 @@
                  (util/from-last-match ".")
                  keyword)
        :message (child-content m :message)})))
+
+(defn extract-response-value [target resp target->elem-spec]
+  (if-let [[tag elem] (target->elem-spec target)]
+    (case tag
+      :one   (child-content resp elem)
+      :many  (map content (children resp elem))
+      :attrs (attrs->map resp))
+    resp))

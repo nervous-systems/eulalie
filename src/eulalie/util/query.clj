@@ -5,7 +5,17 @@
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
-            [eulalie.util :as util]))
+            [eulalie.util :as util]
+            [cheshire.core :as json]))
+
+(defn nested-json-out [m]
+  (->> m
+       (csk-extras/transform-keys csk/->camelCaseString)
+       json/encode))
+
+(defn nested-json-in [s]
+  (csk-extras/transform-keys
+   csk/->kebab-case-keyword (json/decode s true)))
 
 (defn enum-keys->matcher [keys-or-fns]
   (apply some-fn
