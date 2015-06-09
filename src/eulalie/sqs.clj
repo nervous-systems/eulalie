@@ -23,8 +23,6 @@
    {:messages [:maps :delete-message-batch-request-entry]}
    :get-queue-attributes
    {:attrs   [:list :attribute-name]}
-   :set-queue-attributes
-   {:attrs   [:list :attribute]}
    :receive-message
    {:meta   [:list :attribute-name]
     :attrs  [:list :message-attribute-name]}})
@@ -42,9 +40,19 @@
   (set/rename-keys body {:queue-owner-aws-account-id
                          "QueueOwnerAWSAccountId"}))
 
-(defmethod prepare-body :create-queue [_ {:keys [policy] :as body}]
-  (cond-> body
-    policy (assoc :policy (json/encode policy))))
+(defn nested-json-out [m]
+  (->> m
+       (csk-extras/transform-keys csk/->camelCaseString)
+       json/encode))
+
+(defmethod prepare-body :create-queue
+  [_ {{:keys [policy redrive-policy] :as attrs} :attrs :as body}]
+  (assoc body
+         :attrs
+         (cond-> attrs
+           policy (assoc :policy (nested-json-out policy))
+           redrive-policy (assoc :redrive-policy
+                                 (nested-json-out redrive-policy)))))
 
 (defn prepare-message-attrs [a-name a-type a-value]
   (let [data-type ({:string :String
@@ -73,6 +81,13 @@
          :send-message-batch-request-entry
          (map prepare-batch-message messages))))
 
+(defmethod prepare-body :set-queue-attributes [_ {:keys [name value] :as body}]
+  (assoc body
+         [:attribute :name] name
+         [:attribute :value] (cond-> value
+                               (= name :policy) nested-json-out
+                               (= name :redrive-policy) nested-json-out)))
+
 (defmulti  restructure-response (fn [target body] target))
 (defmethod restructure-response :default [_ body] body)
 
@@ -84,8 +99,15 @@
            csk/->kebab-case-keyword)
        (x/child-content attr :value)])))
 
+(defn nested-json-in [s]
+  (csk-extras/transform-keys csk/->kebab-case-keyword (json/decode s true)))
+
 (defmethod restructure-response :get-queue-attributes [_ body]
-  (attributes->map body))
+  (let [{:keys [policy redrive-policy] :as attrs} (attributes->map body)]
+    (cond-> attrs
+      policy (assoc :policy (nested-json-in policy))
+      redrive-policy (assoc :redrive-policy (nested-json-in redrive-policy)))))
+
 (defmethod restructure-response :send-message [_ body]
   (x/child-content->map body {:message-id :id :md-5-of-message-body :md5}))
 
@@ -112,7 +134,8 @@
              {:body :body :md-5-of-body :md5
               :receipt-handle :receipt :message-id :id}))
       ;; User-defined attributes
-      (assoc :attrs (message-attrs->map message))))
+      (assoc :attrs (message-attrs->map message))
+      (dissoc :message)))
 
 (defmethod restructure-response :receive-message [_ body]
   (for [message (x/children body :message)]
@@ -181,9 +204,9 @@
     (let [{:keys [body] :as req} (q/prepare-query-request service req)]
       (assoc req :body
              (as-> body %
+               (prepare-body target %)
                (q/expand-sequences  % (target->seq-spec target))
-               (q/translate-enums   % enum-keys-out)
-               (prepare-body target %)))))
+               (q/translate-enums   % enum-keys-out)))))
 
   (transform-request [_ body]
     (-> body q/format-query-request url/map->query))

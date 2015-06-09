@@ -34,10 +34,35 @@
 (deftest get-queue-attributes+
   (with-transient-queue
     (fn [{q :url}]
-      (is (:maximum-message-size
-           (sqs!! :get-queue-attributes
-                  {:queue-url q
-                   :attrs [:maximum-message-size]}))))))
+      (let [attrs (sqs!! :get-queue-attributes
+                         {:queue-url q
+                          :attrs [:maximum-message-size
+                                  :last-modified-timestamp]})]
+        (is (:maximum-message-size attrs))
+        (is (:last-modified-timestamp attrs))))))
+
+(deftest set-queue-attributes+
+  (with-transient-queue
+    (fn [{q :url}]
+      (sqs!! :set-queue-attributes
+             {:queue-url q
+              :name :delay-seconds
+              :value 2}))))
+
+(deftest set-queue-attributes+json
+  (with-transient-queue
+    (fn [{q :url}]
+      (with-transient-queue
+        (fn [{redrive-q :url}]
+          (let [{:keys [queue-arn]}
+                (sqs!! :get-queue-attributes {:queue-url redrive-q :attrs :all})
+                r-policy {:max-receive-count 1
+                          :dead-letter-target-arn queue-arn}]
+            (sqs!! :set-queue-attributes
+                   {:queue-url q :name :redrive-policy :value r-policy})
+            (let [{:keys [redrive-policy]}
+                  (sqs!! :get-queue-attributes {:queue-url q :attrs :all})]
+              (is (= r-policy redrive-policy)))))))))
 
 (defn send-message* [queue & [attrs]]
   (sqs!! :send-message
@@ -77,14 +102,14 @@
 (deftest receive-message+attrs
   (with-transient-queue
     (fn [{q-url :url}]
-      (let [attrs {:attribute-1 [:number 71]
-                   :different   [:string "fourteen"]}
+      (let [attrs {:attributeOne [:number 71]
+                   :different    [:string "fourteen"]}
             {m-id :id} (send-message* q-url attrs)
             [msg] (sqs!! :receive-message
                          {:queue-url q-url
                           :wait-time-seconds 2
                           :attrs [:different :attr*]})]
-        (is (= {:attribute-1 [:number "71"]
+        (is (= {:attributeOne [:number "71"]
                 :different   [:string "fourteen"]}
                (:attrs msg)))))))
 
