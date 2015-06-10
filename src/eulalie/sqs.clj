@@ -149,9 +149,10 @@
        (util/mapvals first)))
 
 (defn restructure-failed-batch [body]
-  (children-by-attr
-   (x/children body :batch-result-error-entry)
-   :id #{:code :id :message :sender-fault}))
+  (let [ms (-> body
+               (x/children :batch-result-error-entry)
+               (children-by-attr :id #{:code :id :message :sender-fault}))]
+    (util/mapvals #(update-in % [:code] csk/->kebab-case-keyword) ms)))
 
 (defmethod restructure-response :delete-message-batch [_ body]
   {:succeeded
