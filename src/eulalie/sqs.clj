@@ -154,7 +154,7 @@
 (defn restructure-failed-batch [body]
   (let [ms (-> body
                (x/children :batch-result-error-entry)
-               (children-by-attr :id failed-batch-attr-renames))]
+               (children-by-attr :batch-id failed-batch-attr-renames))]
     (util/mapvals #(update-in % [:code] csk/->kebab-case-keyword) ms)))
 
 (defmethod restructure-response :delete-message-batch [_ body]
