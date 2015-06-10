@@ -1,35 +1,9 @@
 (ns eulalie.sqs-test
   (:require [eulalie]
-            [eulalie.sqs :refer :all]
+            [eulalie.sqs]
+            [eulalie.sqs.test-util :refer :all]
             [clojure.test :refer :all]
             [eulalie.test-util :as test-util]))
-
-(def sqs!! (test-util/make-issuer :sqs))
-
-(defn get-queue-url* [q-name]
-  (sqs!! :get-queue-url {:queue-name q-name}))
-
-(defn create-queue* [q-name]
-  (try
-    (sqs!! :create-queue
-           {:attrs {:maximum-message-size (* 128 1024)}
-            :queue-name q-name})
-    (catch clojure.lang.ExceptionInfo e
-      (if (-> e ex-data :type (= :queue-already-exists))
-        (get-queue-url* q-name)
-        (throw e)))))
-
-(defn delete-queue* [queue] (sqs!! :delete-queue {:queue-url queue}))
-
-(defn with-transient-queue [f]
-  (let [q-name (str "eulalie-transient-" (rand-int 0xFFFF))
-        q-url  (create-queue* q-name)]
-    (try
-      (f {:name q-name :url q-url})
-      (finally
-        (delete-queue* q-url)))))
-
-(defn purge-queue*  [queue] (sqs!! :purge-queue  {:queue-url queue}))
 
 (deftest get-queue-attributes+
   (with-transient-queue
@@ -63,12 +37,6 @@
             (let [{:keys [redrive-policy]}
                   (sqs!! :get-queue-attributes {:queue-url q :attrs :all})]
               (is (= r-policy redrive-policy)))))))))
-
-(defn send-message* [queue & [attrs]]
-  (sqs!! :send-message
-         {:message-body "Hello"
-          :queue-url queue
-          :attrs attrs}))
 
 (deftest send-message+
   (with-transient-queue
@@ -110,7 +78,7 @@
                           :wait-time-seconds 2
                           :attrs [:different :attr*]})]
         (is (= {:attributeOne [:number "71"]
-                :different   [:string "fourteen"]}
+                :different    [:string "fourteen"]}
                (:attrs msg)))))))
 
 (defn receive-message* [q-url]
@@ -120,11 +88,11 @@
   (with-transient-queue
     (fn [{q-url :url}]
       (let [m-id (send-message* q-url)
-            [{:keys [receipt]}] (receive-message* q-url)
+            [{:keys [receipt-handle]}] (receive-message* q-url)
             {:keys [succeeded]}
             (sqs!! :delete-message-batch
                    {:queue-url q-url
-                    :messages [{:id "0" :receipt-handle receipt}]})]
+                    :messages [{:id "0" :receipt-handle receipt-handle}]})]
         (is (succeeded "0"))))))
 
 (deftest delete-message-batch+error
@@ -140,19 +108,19 @@
   (with-transient-queue
     (fn [{q-url :url}]
       (let [attrs  {:attribute-1 [:number 71]}
-            {:keys [succeeded]}
+            {{msg "0"} :succeeded}
             (sqs!! :send-message-batch
                    {:queue-url q-url
                     :messages [{:id "0" :attrs attrs :message-body "Hello!"}]})]
-        (is (succeeded "0"))))))
+        (is ((every-pred :body-md5 :attr-md5 :id) msg))))))
 
 (deftest change-message-visibility+
   (with-transient-queue
     (fn [{q-url :url}]
       (send-message* q-url)
-      (let [[{:keys [receipt]}] (receive-message* q-url)]
+      (let [[{:keys [receipt-handle]}] (receive-message* q-url)]
         (is (sqs!! :change-message-visibility
-                   {:receipt-handle receipt
+                   {:receipt-handle receipt-handle
                     :queue-url q-url
                     :visibility-timeout 60}))))))
 
@@ -160,12 +128,12 @@
   (with-transient-queue
     (fn [{q-url :url}]
       (send-message* q-url)
-      (let [[{:keys [receipt]}] (receive-message* q-url)
+      (let [[{:keys [receipt-handle]}] (receive-message* q-url)
             {:keys [succeeded]}
             (sqs!! :change-message-visibility-batch
                    {:queue-url q-url
                     :messages
                     [{:id "0"
-                      :receipt-handle receipt
+                      :receipt-handle receipt-handle
                       :visibility-timeout 60}]})]
         (is (succeeded "0"))))))

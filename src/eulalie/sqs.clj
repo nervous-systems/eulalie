@@ -106,7 +106,7 @@
       redrive-policy (assoc :redrive-policy (q/nested-json-in redrive-policy)))))
 
 (defmethod restructure-response :send-message [_ body]
-  (x/child-content->map body {:message-id :id :md-5-of-message-body :md5}))
+  (x/child-content->map body {:message-id :id :md-5-of-message-body :body-md5}))
 
 (defn message-attr->kv [attr]
   (let [a-name (x/child-content attr :name)
@@ -128,7 +128,8 @@
       (conj (attributes->map message))
       (conj (x/child-content->map
              message
-             {:body :body :md-5-of-body :md5 :message-id :id}))
+             {:body :body :md-5-of-body :body-md5 :message-id :id
+              :receipt-handle :receipt-handle}))
       ;; User-defined attributes
       (assoc :attrs (message-attrs->map message))
       (dissoc :message)))
