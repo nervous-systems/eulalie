@@ -148,10 +148,13 @@
        (group-by unique-attr)
        (util/mapvals first)))
 
+(def failed-batch-attr-renames
+  {:code :code :id :batch-id :message :message :sender-fault :sender-fault})
+
 (defn restructure-failed-batch [body]
   (let [ms (-> body
                (x/children :batch-result-error-entry)
-               (children-by-attr :id #{:code :id :message :sender-fault}))]
+               (children-by-attr :id failed-batch-attr-renames))]
     (util/mapvals #(update-in % [:code] csk/->kebab-case-keyword) ms)))
 
 (defmethod restructure-response :delete-message-batch [_ body]
