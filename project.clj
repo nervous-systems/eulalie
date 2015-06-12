@@ -17,7 +17,7 @@
 
    [http-kit                   "2.1.18"]
    [com.cemerick/url           "0.1.1"]
-   [cheshire                   "5.3.1"]
+   [cheshire                   "5.5.0"]
    [digest                     "1.4.4"]
    [clj-time                   "0.9.0"]
 
