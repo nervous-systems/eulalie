@@ -24,28 +24,37 @@
    csk/->kebab-case-keyword (json/decode s true)))
 
 (defn policy-key-out [k]
-  (if (and (keyword? k) (namespace k))
-    (str (csk/->CamelCaseString (namespace k))
-         ":"
-         (csk/->CamelCaseString (name k)))
-    (csk/->CamelCaseString k)))
+  (cond (and (keyword? k) (namespace k))
+        (str (csk/->CamelCaseString (namespace k))
+             ":"
+             (csk/->CamelCaseString (name k)))
+        (string? k) k
+        :else (csk/->CamelCaseString k)))
 
 (defn policy-key-in [k]
   (let [k (cond-> k (keyword? k) name)]
-    (if (string? k)
+    (cond
+      (= "AWS" k) k
+      (string? k)
       (let [segments (str/split (name k) #":" 2)]
         (apply keyword (map csk/->kebab-case-string segments)))
-      (csk/->kebab-case-keyword k))))
+      :else (csk/->kebab-case-keyword k))))
 
-(defn transform-policy-statement [key-parser {:keys [statement] :as p}]
-  (assoc p :statement
-         (for [{:keys [action effect] :as clause} statement]
-           (cond-> clause
-             action (assoc :action (functor/fmap key-parser action))
-             effect (assoc :effect (key-parser effect))))))
+(defn transform-policy-statement [xform-value {:keys [statement] :as p}]
+  (assoc
+   p :statement
+   (for [{:keys [principal] :as clause} statement]
+     (-> clause
+         ;; Stringify, so we don't later rename
+         (assoc :principal
+                (if (map? principal)
+                  (util/mapkeys name principal)
+                  (name principal)))
+         (update-in [:action] xform-value)
+         (update-in [:effect] xform-value)))))
 
-(defn policy-json-out [m]
-  (->> m
+(defn policy-json-out [policy]
+  (->> policy
        (transform-policy-statement policy-key-out)
        (csk-extras/transform-keys policy-key-out)
        json/encode))
