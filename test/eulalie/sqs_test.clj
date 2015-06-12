@@ -15,14 +15,6 @@
         (is (:maximum-message-size attrs))
         (is (:last-modified-timestamp attrs))))))
 
-(deftest set-queue-attributes+
-  (with-transient-queue
-    (fn [{q :url}]
-      (sqs!! :set-queue-attributes
-             {:queue-url q
-              :name :delay-seconds
-              :value 2}))))
-
 (deftest set-queue-attributes+json
   (with-transient-queue
     (fn [{q :url}]

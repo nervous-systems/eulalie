@@ -28,7 +28,7 @@
   (let [matcher (enum-keys->matcher enum-keys)]
     (into req
       (for [[k v] req :when (matcher k)]
-        [k (csk/->CamelCaseString v)]))))
+        [k (cond-> v (keyword? v) csk/->CamelCaseString)]))))
 
 (defn join-key-paths [& segments]
   (vec (flatten (apply conj [] segments))))
