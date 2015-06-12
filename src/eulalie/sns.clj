@@ -146,9 +146,9 @@
     (let [{:keys [body] :as req} (q/prepare-query-request service req)]
       (assoc req :body
              (as-> body %
+               (prepare-body target %)
                (q/expand-sequences  % (target->seq-spec target))
-               (q/translate-enums   % enum-keys-out)
-               (prepare-body target %)))))
+               (q/translate-enums   % enum-keys-out)))))
 
   (transform-request [_ body]
     (-> body q/format-query-request q/log-query url/map->query))
