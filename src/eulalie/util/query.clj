@@ -6,7 +6,12 @@
             [clojure.string :as str]
             [clojure.walk :as walk]
             [eulalie.util :as util]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [clojure.tools.logging :as log]))
+
+(defn log-query [q]
+  (log/debug "Outgoing query map" (with-out-str (clojure.pprint/pprint q)))
+  q)
 
 (defn nested-json-out [m]
   (->> m

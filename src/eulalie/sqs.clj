@@ -204,7 +204,7 @@
                (q/translate-enums   % enum-keys-out)))))
 
   (transform-request [_ body]
-    (-> body q/format-query-request url/map->query))
+    (-> body q/format-query-request q/log-query url/map->query))
 
   (transform-response [_ body]
     ;; FIXME we want the request also here, for target
