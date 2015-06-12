@@ -28,8 +28,7 @@
     :attrs  [:list :message-attribute-name]}})
 
 (def enum-keys-out
-  #{:action-name
-    :attribute-name
+  #{:attribute-name
     #(and (= (first %) :attribute) (= (last %) :name))})
 
 (defmulti  prepare-body (fn [target req] target))
@@ -39,6 +38,9 @@
   ;; The case deviates from the other keys
   (set/rename-keys body {:queue-owner-aws-account-id
                          "QueueOwnerAWSAccountId"}))
+
+(defmethod prepare-body :add-permission [_ {:keys [actions] :as m}]
+  (assoc m :actions (map q/policy-key-out actions)))
 
 (defmethod prepare-body :receive-message [_ body]
   (set/rename-keys body {:maximum :maximum-number-of-messages

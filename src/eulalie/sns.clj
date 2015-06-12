@@ -26,7 +26,6 @@
 
 (def enum-keys-out
   #{:attribute-name
-    :action-name
     #(and (= (first %) :attributes) (= (last %) :key))})
 
 (defmulti  prepare-body (fn [target body] target))
@@ -43,6 +42,9 @@
   (prepare-attr-req body))
 (defmethod prepare-body :set-topic-attributes [_ body]
   (prepare-attr-req body))
+
+(defmethod prepare-body :add-permission [_ {:keys [actions] :as m}]
+  (assoc m :actions (map q/policy-key-out actions)))
 
 (defmulti  prepare-message-value (fn [t value] t))
 (defmethod prepare-message-value :default [_ v] v)
