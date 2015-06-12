@@ -49,7 +49,7 @@
   (assoc body
          :attrs
          (cond-> attrs
-           policy (assoc :policy (q/nested-json-out policy))
+           policy (assoc :policy (q/policy-json-out policy))
            redrive-policy (assoc :redrive-policy
                                  (q/nested-json-out redrive-policy)))))
 
@@ -85,7 +85,7 @@
   (assoc body
          [:attribute :name] name
          [:attribute :value] (cond-> value
-                               (= name :policy) q/nested-json-out
+                               (= name :policy) q/policy-json-out
                                (= name :redrive-policy) q/nested-json-out)))
 
 (defmulti  restructure-response (fn [target body] target))
@@ -102,7 +102,7 @@
 (defmethod restructure-response :get-queue-attributes [_ body]
   (let [{:keys [policy redrive-policy] :as attrs} (attributes->map body)]
     (cond-> attrs
-      policy (assoc :policy (q/nested-json-in policy))
+      policy (assoc :policy (q/policy-json-in policy))
       redrive-policy (assoc :redrive-policy (q/nested-json-in redrive-policy)))))
 
 (defmethod restructure-response :send-message [_ body]

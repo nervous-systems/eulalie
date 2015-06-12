@@ -37,7 +37,7 @@
          :attribute-name name
          :attribute-value (cond-> value
                             (= name :delivery-policy) q/nested-json-out
-                            (= name :policy) q/nested-json-out)))
+                            (= name :policy) q/policy-json-out)))
 
 (defmethod prepare-body :set-subscription-attributes [_ body]
   (prepare-attr-req body))
@@ -116,7 +116,7 @@
 (defn handle-json-keys-in
   [{:keys [policy delivery-policy effective-delivery-policy] :as m}]
   (cond-> m
-    policy (assoc :policy (q/nested-json-in policy))
+    policy (assoc :policy (q/policy-json-in policy))
     delivery-policy (assoc :delivery-policy (q/nested-json-in delivery-policy))
     effective-delivery-policy
     (assoc :effective-delivery-policy

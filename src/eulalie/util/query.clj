@@ -1,6 +1,7 @@
 (ns ^{:doc "Utilities for query parameter-based services"}
   eulalie.util.query
   (:require [camel-snake-kebab.core :as csk]
+            [clojure.algo.generic.functor :as functor]
             [camel-snake-kebab.extras :as csk-extras]
             [clojure.set :as set]
             [clojure.string :as str]
@@ -21,6 +22,37 @@
 (defn nested-json-in [s]
   (csk-extras/transform-keys
    csk/->kebab-case-keyword (json/decode s true)))
+
+(defn policy-key-out [k]
+  (if (and (keyword? k) (namespace k))
+    (str (csk/->CamelCaseString (namespace k))
+         ":"
+         (csk/->CamelCaseString (name k)))
+    (csk/->CamelCaseString k)))
+
+(defn policy-key-in [k]
+  (let [k (cond-> k (keyword? k) name)]
+    (if (string? k)
+      (let [segments (str/split (name k) #":" 2)]
+        (apply keyword (map csk/->kebab-case-string segments)))
+      (csk/->kebab-case-keyword k))))
+
+(defn transform-policy-statement [key-parser {:keys [statement] :as p}]
+  (assoc p :statement
+         (for [{:keys [action effect] :as clause} statement]
+           (cond-> clause
+             action (assoc :action (functor/fmap key-parser action))
+             effect (assoc :effect (key-parser effect))))))
+
+(defn policy-json-out [m]
+  (->> m
+       (transform-policy-statement policy-key-out)
+       (csk-extras/transform-keys policy-key-out)
+       json/encode))
+
+(defn policy-json-in [s]
+  (->> (json/decode s policy-key-in)
+       (transform-policy-statement policy-key-in)))
 
 (defn enum-keys->matcher [keys-or-fns]
   (apply some-fn

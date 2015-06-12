@@ -106,11 +106,6 @@
   (let [arn (create-topic*)]
     (is (map? (:policy (sns!! :get-topic-attributes {:topic-arn arn}))))))
 
-(deftest set-topic-attributes+
-  (let [arn (create-topic*)]
-    (is (map? (sns!! :set-topic-attributes
-                     {:topic-arn arn :name :policy :value {}})))))
-
 (deftest get-endpoint-attributes+
   (with-transient-app
     (fn [p-arn]
