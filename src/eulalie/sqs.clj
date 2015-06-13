@@ -124,20 +124,6 @@
     (for [attr (x/children message :message-attribute)]
       (message-attr->kv attr))))
 
-(def parse-long #(when % (Long/parseLong %)))
-
-(def meta-attr->parser
-  {:approximate-first-receive-timestamp parse-long
-   :sent-timestamp parse-long
-   :approximate-receive-count parse-long})
-
-(defn meta-attributes->map [message]
-  (into {}
-    (for [[k v] (attributes->map message)]
-      [k (if-let [parser (meta-attr->parser k)]
-           (parser v)
-           v)])))
-
 (defn restructure-message [message]
   (-> message
       (conj (x/child-content->map
@@ -145,7 +131,7 @@
              {:body :body :md-5-of-body :body-md5 :message-id :id
               :receipt-handle :receipt-handle}))
       (assoc :attrs (message-attrs->map message)
-             :meta  (meta-attributes->map message))
+             :meta  (attributes->map message))
       (dissoc :message)))
 
 (defmethod restructure-response :receive-message [_ body]
