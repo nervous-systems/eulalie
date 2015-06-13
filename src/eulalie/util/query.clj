@@ -35,7 +35,7 @@
 (defn policy-key-in [k]
   (let [k (cond-> k (keyword? k) name)]
     (cond
-      (= "AWS" k) k
+      (= "AWS" k) (name k) ;; eh
       (string? k)
       (let [segments (str/split (name k) #":" 2)]
         (apply keyword (map csk/->kebab-case-string segments)))
