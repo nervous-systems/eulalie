@@ -50,7 +50,7 @@
                 (if (map? principal)
                   (util/mapkeys name principal)
                   (name principal)))
-         (update-in [:action] xform-value)
+         (update-in [:action] (partial functor/fmap xform-value))
          (update-in [:effect] xform-value)))))
 
 (defn policy-json-out [policy]
