@@ -26,7 +26,7 @@
 
 (defn policy-key-out [k]
   (cond (and (keyword? k) (namespace k))
-        (str (csk/->CamelCaseString (namespace k))
+        (str (str/lower-case (namespace k))
              ":"
              (csk/->CamelCaseString (name k)))
         (string? k) k
