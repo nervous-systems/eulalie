@@ -141,7 +141,7 @@
    :get-platform-application-attributes [:attrs]
    :get-endpoint-attributes [:attrs]})
 
-(defrecord SNSService [endpoint version max-retries]
+(defrecord SNSService [service-name region version max-retries]
   AmazonWebService
 
   (prepare-request [service {:keys [target] :as req}]
@@ -176,7 +176,4 @@
     (sign/aws4-sign "sns" req)))
 
 (def service
-  (SNSService.
-   (url/url "https://sns.us-east-1.amazonaws.com")
-   "2010-03-31"
-   3))
+  (SNSService. "sns" "us-east-1" "2010-03-31" 3))

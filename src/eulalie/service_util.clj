@@ -5,6 +5,7 @@
    [clojure.string :as string]
    [clj-time.format :as time-format]
    [clj-time.coerce :as time-coerce]
+   [cemerick.url :as url]
    [camel-snake-kebab.core :refer
     [->CamelCaseKeyword
      ->CamelCaseString
@@ -120,3 +121,24 @@
 
 (def ->camel-keys-k (partial transform-keys ->CamelCaseKeyword))
 (def ->camel-keys-s (partial transform-keys ->CamelCaseString))
+
+(defn region->tld [region]
+  (case (name region)
+    "cn-north-1" ".com.cn"
+    ".com"))
+
+;; The signers want the region, we ought to make it available instead of having
+;; them extract it from this endpoint
+(defn region->endpoint [region {service :service-name}]
+  ;; This is right for now
+  (url/url (str "https://"
+                (name service) "." (name region)
+                ".amazonaws"
+                (region->tld region))))
+
+(defn default-request [{:keys [max-retries] :as service} {:keys [creds] :as req}]
+  (let [region (some :region [req creds service])]
+    (merge {:max-retries max-retries
+            :endpoint (when-not (:endpoint req)
+                        (region->endpoint region service))
+            :method :post} req)))

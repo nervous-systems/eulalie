@@ -12,7 +12,7 @@
 (defn sanitize-creds [m]
   (into {}
     (for [[k v] m]
-      [k (string/trim v)])))
+      [k (cond-> v (string? v) string/trim)])))
 
 (defn slash-join [& rest]
   (string/join "/" rest))

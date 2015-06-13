@@ -194,7 +194,7 @@
    :list-queues   [:many :queue-url]
    :list-dead-letter-source-queues [:many :queue-url]})
 
-(defrecord SQSService [endpoint version max-retries]
+(defrecord SQSService [service-name region version max-retries]
   eulalie/AmazonWebService
 
   (prepare-request [service {:keys [target] :as req}]
@@ -226,7 +226,4 @@
     (sign/aws4-sign "sqs" req)))
 
 (def service
-  (SQSService.
-   (url/url "https://sqs.us-east-1.amazonaws.com")
-   "2012-11-05"
-   3))
+  (SQSService. "sqs" "us-east-1" "2012-11-05"  3))

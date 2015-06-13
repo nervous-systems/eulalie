@@ -3,6 +3,7 @@
   (:require [camel-snake-kebab.core :as csk]
             [clojure.algo.generic.functor :as functor]
             [camel-snake-kebab.extras :as csk-extras]
+            [eulalie.service-util :as service-util]
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
@@ -148,17 +149,12 @@
          body))
      body spec)))
 
-(defn default-request [{:keys [max-retries endpoint]} req]
-  (merge {:max-retries max-retries
-          :endpoint endpoint
-          :method :post} req))
-
 (defn prepare-query-request
   [{:keys [version] :as service} {:keys [body target] :as req}]
   (let [body (assoc body
                     :version version
                     :action (csk/->CamelCaseString target))]
-    (-> (default-request service req)
+    (-> (service-util/default-request service req)
         (assoc :body body)
         (assoc-in [:headers :content-type]
                   "application/x-www-form-urlencoded"))))

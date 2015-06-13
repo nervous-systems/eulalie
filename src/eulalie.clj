@@ -80,7 +80,7 @@
     (load-internal-service service)))
 
 (defn issue-request!
-  [{:keys [service] :as request}]
+  [{:keys [service creds region] :as request}]
   (let [service (resolve-service service)]
     (go-catching
       (loop [request (prepare-req request service)
