@@ -57,7 +57,7 @@
                          {:queue-url q-url
                           :wait-time-seconds 2
                           :meta [:sender-id]})]
-        (is (:sender-id msg))))))
+        (is (:sender-id (:meta msg)))))))
 
 (deftest receive-message+attrs
   (with-transient-queue
