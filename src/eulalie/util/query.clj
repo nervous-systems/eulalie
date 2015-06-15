@@ -1,11 +1,68 @@
 (ns ^{:doc "Utilities for query parameter-based services"}
   eulalie.util.query
   (:require [camel-snake-kebab.core :as csk]
+            [clojure.algo.generic.functor :as functor]
             [camel-snake-kebab.extras :as csk-extras]
+            [eulalie.service-util :as service-util]
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
-            [eulalie.util :as util]))
+            [eulalie.util :as util]
+            [cheshire.core :as json]
+            [clojure.tools.logging :as log]))
+
+(defn log-query [q]
+  (log/debug "Outgoing query map" (with-out-str (clojure.pprint/pprint q)))
+  q)
+
+(defn nested-json-out [m]
+  (->> m
+       (csk-extras/transform-keys csk/->camelCaseString)
+       json/encode))
+
+(defn nested-json-in [s]
+  (csk-extras/transform-keys
+   csk/->kebab-case-keyword (json/decode s true)))
+
+(defn policy-key-out [k]
+  (cond (and (keyword? k) (namespace k))
+        (str (str/lower-case (namespace k))
+             ":"
+             (csk/->CamelCaseString (name k)))
+        (string? k) k
+        :else (csk/->CamelCaseString k)))
+
+(defn policy-key-in [k]
+  (let [k (cond-> k (keyword? k) name)]
+    (cond
+      (= "AWS" k) (name k) ;; eh
+      (string? k)
+      (let [segments (str/split (name k) #":" 2)]
+        (apply keyword (map csk/->kebab-case-string segments)))
+      :else (csk/->kebab-case-keyword k))))
+
+(defn transform-policy-statement [xform-value {:keys [statement] :as p}]
+  (assoc
+   p :statement
+   (for [{:keys [principal] :as clause} statement]
+     (-> clause
+         ;; Stringify, so we don't later rename
+         (assoc :principal
+                (if (map? principal)
+                  (util/mapkeys name principal)
+                  (name principal)))
+         (update-in [:action] (partial functor/fmap xform-value))
+         (update-in [:effect] xform-value)))))
+
+(defn policy-json-out [policy]
+  (->> policy
+       (transform-policy-statement policy-key-out)
+       (csk-extras/transform-keys policy-key-out)
+       json/encode))
+
+(defn policy-json-in [s]
+  (->> (json/decode s policy-key-in)
+       (transform-policy-statement policy-key-in)))
 
 (defn enum-keys->matcher [keys-or-fns]
   (apply some-fn
@@ -18,7 +75,7 @@
   (let [matcher (enum-keys->matcher enum-keys)]
     (into req
       (for [[k v] req :when (matcher k)]
-        [k (csk/->CamelCaseString v)]))))
+        [k (cond-> v (keyword? v) csk/->CamelCaseString)]))))
 
 (defn join-key-paths [& segments]
   (vec (flatten (apply conj [] segments))))
@@ -92,17 +149,12 @@
          body))
      body spec)))
 
-(defn default-request [{:keys [max-retries endpoint]} req]
-  (merge {:max-retries max-retries
-          :endpoint endpoint
-          :method :post} req))
-
 (defn prepare-query-request
   [{:keys [version] :as service} {:keys [body target] :as req}]
   (let [body (assoc body
                     :version version
                     :action (csk/->CamelCaseString target))]
-    (-> (default-request service req)
+    (-> (service-util/default-request service req)
         (assoc :body body)
         (assoc-in [:headers :content-type]
                   "application/x-www-form-urlencoded"))))

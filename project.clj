@@ -1,4 +1,4 @@
-(defproject io.nervous/eulalie "0.3.0-SNAPSHOT"
+(defproject io.nervous/eulalie "0.3.2"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
@@ -6,7 +6,7 @@
   :deploy-repositories [["clojars" {:creds :gpg}]]
   :signing {:gpg-key "moe@nervous.io"}
   :global-vars {*warn-on-reflection* true}
-  :source-paths ["src"]
+  :source-paths ["src" "test"]
   :dependencies
   [[org.clojure/clojure        "1.6.0"]
    [org.clojure/core.async     "0.1.346.0-17112a-alpha"]
@@ -15,18 +15,13 @@
 
    [camel-snake-kebab           "0.2.5"]
 
-   [org.slf4j/slf4j-log4j12    "1.7.5"]
-   [log4j/log4j                "1.2.17"
-    :exclusions [javax.mail/mail
-                 javax.jms/jms
-                 com.sun.jmdk/jmxtools
-                 com.sun.jmx/jmxri]]
-
    [http-kit                   "2.1.18"]
    [com.cemerick/url           "0.1.1"]
-   [cheshire                   "5.3.1"]
+   [cheshire                   "5.5.0"]
    [digest                     "1.4.4"]
-   [clj-time                   "0.9.0"]]
+   [clj-time                   "0.9.0"]
+
+   [ch.qos.logback/logback-classic "1.1.2"]]
   :exclusions [[org.clojure/clojure]]
 
   :profiles {:dev

@@ -34,13 +34,11 @@
                     (min max-backoff-ms)
                     async/timeout))))
 
-(defrecord DynamoService [endpoint target-prefix max-retries]
+(defrecord DynamoService [service-name region target-prefix max-retries]
   AmazonWebService
 
-  (prepare-request [{:keys [endpoint target-prefix content-type]} req]
-    (let [req (merge {:max-retries max-retries
-                      :method :post
-                      :endpoint endpoint} req)]
+  (prepare-request [{:keys [target-prefix] :as service} req]
+    (let [req (default-request service req)]
       (update-in req [:headers] merge
                  {:content-type "application/x-amz-json-1.0"
                   :x-amz-target (req-target target-prefix req)})))
@@ -57,11 +55,12 @@
   (request-backoff [_ retry-count error]
     (backoff retry-count))
 
-  (sign-request [_ req]
-    (sign/aws4-sign "dynamodb" req)))
+  (sign-request [{:keys [service-name]} req]
+    (sign/aws4-sign service-name req)))
 
 (def service
   (DynamoService.
-   (url "https://dynamodb.us-east-1.amazonaws.com/")
+   "dynamodb"
+   "us-east-1"
    "DynamoDB_20120810."
    10))
