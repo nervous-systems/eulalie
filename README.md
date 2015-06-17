@@ -3,8 +3,12 @@
 [![Clojars Project](http://clojars.org/io.nervous/eulalie/latest-version.svg)](http://clojars.org/io.nervous/eulalie)
 
 Asynchronous, pure-Clojure AWS client.  There is currently no
-documentation.  Dynamo is fully supported, SNS is partially supported.
-More services to come. 
+documentation.  Dynamo, SNS and SQS are fully supported.
+
+Higher-level clients built with Eulalie:
+
+ - [Hildebrand, a DynamoDB client](https://github.com/nervous-systems/hildebrand)
+ - [Fink-Nottle, a client for SQS & SNS](https://github.com/nervous-systems/fink-nottle)
 
 ## Usage
 
