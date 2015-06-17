@@ -7,7 +7,7 @@
             [eulalie :refer :all]
             [cheshire.core :as cheshire]
             [clojure.core.async :as async]
-            [camel-snake-kebab.core :refer [->CamelCaseString ->kebab-case-keyword]]))
+            [camel-snake-kebab.core :refer [->PascalCaseString ->kebab-case-keyword]]))
 
 ;; FIXME how do we handle errors in the body like {__type:} in a
 ;; general way?

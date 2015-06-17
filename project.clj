@@ -13,7 +13,7 @@
    [org.clojure/tools.logging  "0.3.1"]
    [org.clojure/algo.generic   "0.1.2"]
 
-   [camel-snake-kebab           "0.2.5"]
+   [camel-snake-kebab           "0.3.0"]
 
    [http-kit                   "2.1.18"]
    [com.cemerick/url           "0.1.1"]

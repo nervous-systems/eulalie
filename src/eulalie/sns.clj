@@ -56,7 +56,7 @@
   (defn prepare-targeted-message [msg]
     (into {}
       (for [[k v] msg]
-        (let [k' (csk/->SNAKE_CASE_KEYWORD k)
+        (let [k' (csk/->SCREAMING_SNAKE_CASE_KEYWORD k)
               k  (if (upper-case k') k' k)
               v  (prepare-message-value
                   (dispatch-map k k)
