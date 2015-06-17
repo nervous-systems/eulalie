@@ -7,8 +7,8 @@
    [clj-time.coerce :as time-coerce]
    [cemerick.url :as url]
    [camel-snake-kebab.core :refer
-    [->CamelCaseKeyword
-     ->CamelCaseString
+    [->PascalCaseKeyword
+     ->PascalCaseString
      ->kebab-case-keyword]]
    [camel-snake-kebab.extras :refer [transform-keys]])
   (:import java.util.zip.CRC32))
@@ -110,17 +110,17 @@
 (def aws-date-format      (time-format/formatters :basic-date))
 (def aws-date-time-format (time-format/formatters :basic-date-time-no-ms))
 
-(def ->camel-k ->CamelCaseKeyword)
+(def ->camel-k ->PascalCaseKeyword)
 (def ->kebab-k ->kebab-case-keyword)
-(def ->camel-s ->CamelCaseString)
+(def ->camel-s ->PascalCaseString)
 
 (defn ->camel [x]
   (if (string? x)
     (->camel-s x)
     (->camel-k x)))
 
-(def ->camel-keys-k (partial transform-keys ->CamelCaseKeyword))
-(def ->camel-keys-s (partial transform-keys ->CamelCaseString))
+(def ->camel-keys-k (partial transform-keys ->PascalCaseKeyword))
+(def ->camel-keys-s (partial transform-keys ->PascalCaseString))
 
 (defn region->tld [region]
   (case (name region)

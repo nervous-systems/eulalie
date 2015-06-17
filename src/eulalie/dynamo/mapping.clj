@@ -5,7 +5,7 @@
    [clojure.algo.generic.functor :as functor]
    [clojure.string  :as str]
    [camel-snake-kebab.core
-    :refer [->SNAKE_CASE_KEYWORD ->kebab-case-keyword ->CamelCaseKeyword]]))
+    :refer [->SCREAMING_SNAKE_CASE_KEYWORD ->kebab-case-keyword ->PascalCaseKeyword]]))
 
 (defn handle-attr [f v]
   (functor/fmap
@@ -25,12 +25,12 @@
 
 (defn transform-request [m]
   (transform
-   ->CamelCaseKeyword
+   ->PascalCaseKeyword
    identity
    key-types/request-key-types
    {:nest transform-request
     :attr #(handle-attr transform-request %)
-    :enum ->SNAKE_CASE_KEYWORD
+    :enum ->SCREAMING_SNAKE_CASE_KEYWORD
     :list (fn-some->> not-empty (map name) (str/join ","))}
    m))
 

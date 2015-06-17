@@ -28,9 +28,9 @@
   (cond (and (keyword? k) (namespace k))
         (str (str/lower-case (namespace k))
              ":"
-             (csk/->CamelCaseString (name k)))
+             (csk/->PascalCaseString (name k)))
         (string? k) k
-        :else (csk/->CamelCaseString k)))
+        :else (csk/->PascalCaseString k)))
 
 (defn policy-key-in [k]
   (let [k (cond-> k (keyword? k) name)]
@@ -74,8 +74,8 @@
 (defn translate-enums [req enum-keys]
   (let [matcher (enum-keys->matcher enum-keys)]
     (into req
-      (for [[k v] req :when (matcher k)]
-        [k (cond-> v (keyword? v) csk/->CamelCaseString)]))))
+          (for [[k v] req :when (matcher k)]
+            [k (cond-> v (keyword? v) csk/->PascalCaseString)]))))
 
 (defn join-key-paths [& segments]
   (vec (flatten (apply conj [] segments))))
@@ -96,7 +96,7 @@
         (let [k (flatten k)]
           (str/join "." (map format-query-key k)))
         (string?  k) k
-        (keyword? k) (csk/->CamelCaseString k)
+        (keyword? k) (csk/->PascalCaseString k)
         :else        (str k)))
 
 (defn format-query-request [m]
@@ -153,7 +153,7 @@
   [{:keys [version] :as service} {:keys [body target] :as req}]
   (let [body (assoc body
                     :version version
-                    :action (csk/->CamelCaseString target))]
+                    :action (csk/->PascalCaseString target))]
     (-> (service-util/default-request service req)
         (assoc :body body)
         (assoc-in [:headers :content-type]
