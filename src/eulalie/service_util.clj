@@ -137,8 +137,9 @@
                 (region->tld region))))
 
 (defn default-request [{:keys [max-retries] :as service} {:keys [creds] :as req}]
-  (let [region (some :region [req creds service])]
+  (let [region (some :region [req creds service])
+        endpoint (some :endpoint [req creds])]
     (merge {:max-retries max-retries
-            :endpoint (when-not (:endpoint req)
-                        (region->endpoint region service))
+            :endpoint (or endpoint
+                          (region->endpoint region service))
             :method :post} req)))
