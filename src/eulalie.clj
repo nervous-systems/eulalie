@@ -20,20 +20,23 @@
     :url      str
     :headers  walk/stringify-keys]))
 
-(defn req->service-value [{:keys [service]}]
+(defn req->service-dispatch [{:keys [service]}]
   (keyword "eulalie.service" (name service)))
 
-(defmulti prepare-request   req->service-value)
-(defmulti transform-request-body req->service-value)
+(defn resp->service-dispatch [{req :request}]
+  (req->service-dispatch req))
 
-(defmulti transform-response-body  (fn [req body] (req->service-value req)))
-(defmulti transform-response-error (fn [req resp] (req->service-value req)))
+(defmulti prepare-request   req->service-dispatch)
+(defmulti transform-request-body req->service-dispatch)
 
-(defmulti  request-backoff (fn [req retries error] (req->service-value req)))
+(defmulti transform-response-body  resp->service-dispatch)
+(defmulti transform-response-error resp->service-dispatch)
+
+(defmulti  request-backoff (fn [req retries error] (req->service-dispatch req)))
 (defmethod request-backoff :default [_ retries error]
   (default-retry-backoff retries error))
 
-(defmulti  sign-request req->service-value)
+(defmulti  sign-request req->service-dispatch)
 (defmethod sign-request :default [{:keys [service-name] :as req}]
   ;; After prepare-request, we expect there to be a canonical service name on
   ;; the request, e.g. "dynamodb", rather than :dynamo
@@ -42,14 +45,15 @@
 (defn prepare-req
   [{:keys [endpoint headers] :as req}]
 
-  (let [{:keys [body] :as req}
-        (-> req
-            prepare-request
-            transform-request-body
-            (update-in [:endpoint] concretize-port))]
+  (let [req (-> req
+                prepare-request
+                (update-in [:endpoint] concretize-port))
+        body (transform-request-body req)]
     ;; this needs to go away, can't assume it can be counted now
-    (update-in req [:headers] merge
-               {:content-length (count (get-utf8-bytes body))})))
+    (-> req
+        (assoc :body body)
+        (update-in [:headers] merge
+                   {:content-length (count (get-utf8-bytes body))}))))
 
 (def ok? (fn-> :status (= 200)))
 
@@ -57,7 +61,7 @@
   (decorate-error
    (if-let [e (headers->error-type headers)]
      {:type e}
-     (or (transform-response-error req resp)
+     (or (transform-response-error resp)
          {:type :unrecognized}))
    resp))
 
@@ -69,7 +73,7 @@
   (if-not (response-checksum-ok? aws-resp)
     [:error {:type :crc32-mismatch}]
     (if (ok? aws-resp)
-      [:ok (->> aws-resp :body (transform-response-body req))]
+      [:ok (transform-response-body aws-resp)]
       (let [error (or (http-kit->error (:error aws-resp))
                       (parse-error req aws-resp))]
         (if (and (retry? (:status aws-resp) error) (< retries max-retries))
@@ -84,7 +88,9 @@
            retries 0]
       (let [request' (sign-request request)
             aws-resp (-> request' req->http-kit channel-request! <?)
-            result   {:response (dissoc aws-resp :opts)
+            result   {:response (-> aws-resp
+                                    (dissoc :opts)
+                                    (assoc :request request))
                       :retries  retries
                       :request  request'}
             [label value] (handle-result result)]

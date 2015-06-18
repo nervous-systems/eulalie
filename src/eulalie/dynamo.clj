@@ -1,16 +1,30 @@
 (ns eulalie.dynamo
-  (:require [cemerick.url :refer [url]]
-            [eulalie.sign :as sign]
-            [eulalie.service-util :refer :all]
-            [eulalie.dynamo.mapping :as mapping]
-            [eulalie.util :refer :all]
-            [eulalie.util.json :as util.json]
-            [eulalie :refer :all]
-            [cheshire.core :as cheshire]
+  (:require [eulalie]
             [clojure.core.async :as async]
-            [camel-snake-kebab.core :refer [->PascalCaseString ->kebab-case-keyword]]))
+            [eulalie.util.json.mapping :as json.mapping]
+            [eulalie.dynamo.key-types :as key-types]
+            [eulalie.util.json :as util.json]))
 
 (derive :eulalie.service/dynamo :eulalie.service.generic/json-response)
+(derive :eulalie.service/dynamo :eulalie.service.generic/json-request)
+
+(def service-name "dynamodb")
+(def target-prefix "DynamoDB_20120810.")
+
+(def service-defaults
+  {:region "us-east-1"
+   :service-name service-name
+   :target-prefix target-prefix
+   :max-retries 10})
+
+(defmethod eulalie/prepare-request :eulalie.service/dynamo [req]
+  (util.json/prepare-json-request service-defaults req))
+
+(defmethod util.json/map-request-keys :eulalie.service/dynamo [{:keys [body]}]
+  (json.mapping/transform-request body key-types/request-key-types))
+
+(defmethod util.json/map-response-keys :eulalie.service/dynamo [{:keys [body]}]
+  (json.mapping/transform-response body key-types/response-key-types))
 
 (let [scale-factor   25
       max-backoff-ms (* 20 1000)
@@ -24,23 +38,5 @@
                     (min max-backoff-ms)
                     async/timeout))))
 
-(def service-name "dynamodb")
-(def target-prefix "DynamoDB_20120810.")
-
-(def service-defaults
-  {:region "us-east-1"
-   :service-name service-name
-   :target-prefix target-prefix
-   :max-retries 10})
-
-(defmethod prepare-request :eulalie.service/dynamo [req]
-  (util.json/prepare-json-request service-defaults req))
-
-(defmethod transform-request-body :eulalie.service/dynamo [{:keys [body] :as req}]
-  (assoc req :body (some-> body mapping/transform-request cheshire/encode)))
-
-(defmethod transform-response-body :eulalie.service/dynamo [req body]
-  (some-> body (cheshire/decode true) mapping/transform-response))
-
-(defmethod request-backoff :eulalie.service/dynamo [req retries error]
+(defmethod eulalie/request-backoff :eulalie.service/dynamo [req retries error]
   (backoff retries))

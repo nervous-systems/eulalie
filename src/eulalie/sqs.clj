@@ -213,7 +213,7 @@
                    (q/translate-enums   % enum-keys-out)))))
 
 (defmethod eulalie/transform-response-body :eulalie.service/sqs
-  [{:keys [target] :as req} body]
+  [{{:keys [target]} :request body :body}]
   (let [elem (x/string->xml-map body)]
     (->> (x/extract-response-value target elem target->elem-spec)
          (restructure-response target))))

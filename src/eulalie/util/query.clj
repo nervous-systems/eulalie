@@ -163,4 +163,4 @@
 
 (defmethod eulalie/transform-request-body :eulalie.service.generic/query-request
   [{:keys [body] :as req}]
-  (assoc req :body (-> body format-query-request log-query url/map->query)))
+  (-> body format-query-request log-query url/map->query))

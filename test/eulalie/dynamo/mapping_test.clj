@@ -1,12 +1,14 @@
 (ns eulalie.dynamo.mapping-test
-  (:require [eulalie.dynamo.mapping :as mapping]
+  (:require [eulalie.util.json.mapping :as mapping]
             [eulalie.dynamo.test-data :as test-data]
+            [eulalie.dynamo.key-types :as key-types]
             [eulalie.util :refer :all]
             [clojure.data :as data]
             [clojure.test :refer :all]))
 
 (deftest request-transform-all
-  (let [actual (mapping/transform-request  test-data/all-request-keys)]
+  (let [actual (mapping/transform-request
+                test-data/all-request-keys key-types/request-key-types)]
     (is (= actual test-data/all-request-keys-out))))
 
 (deftest request-items-batch-get
@@ -27,7 +29,8 @@
                :consistent-read false
                :expression-attribute-names attr-names
                :keys ks
-               :projection-expression [:#foo-bar]}}})))))
+               :projection-expression [:#foo-bar]}}}
+            key-types/request-key-types)))))
 
 (deftest request-items-batch-write
   (let [p-item {:ns-key  {:NS #{1}}
@@ -42,8 +45,10 @@
             {:request-items
              {:really-short-table-name
               [{:delete-request {:key  d-item}}
-               {:put-request    {:item p-item}}]}})))))
+               {:put-request    {:item p-item}}]}}
+            key-types/request-key-types)))))
 
 (deftest response-transform-all
-  (let [actual (mapping/transform-response test-data/all-response-keys)]
+  (let [actual (mapping/transform-response
+                test-data/all-response-keys key-types/response-key-types)]
     (is (= actual test-data/all-response-keys-in))))

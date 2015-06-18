@@ -22,9 +22,9 @@
 
 (defmethod prepare-request :eulalie.service/test-service [req]
   (merge {:method :post :max-retries 3 :service-name "testservice"} req))
-(defmethod transform-request-body   :eulalie.service/test-service [req] req)
-(defmethod transform-response-body  :eulalie.service/test-service [req body] body)
-(defmethod transform-response-error :eulalie.service/test-service [req resp] nil)
+(defmethod transform-request-body   :eulalie.service/test-service [req] (:body req))
+(defmethod transform-response-body  :eulalie.service/test-service [resp] (:body resp))
+(defmethod transform-response-error :eulalie.service/test-service [resp] nil)
 
 (def issue-request* (fn-> (assoc :service :test-service) issue-request!!))
 

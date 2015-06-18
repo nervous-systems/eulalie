@@ -71,5 +71,5 @@
     resp))
 
 (defmethod eulalie/transform-response-error
-  :eulalie.service.generic/xml-response [req {:keys [body] :as resp}]
+  :eulalie.service.generic/xml-response [{:keys [body] :as resp}]
   (parse-xml-error body))
