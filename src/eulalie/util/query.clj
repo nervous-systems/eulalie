@@ -1,6 +1,8 @@
 (ns ^{:doc "Utilities for query parameter-based services"}
   eulalie.util.query
-  (:require [camel-snake-kebab.core :as csk]
+  (:require [eulalie]
+            [cemerick.url :as url]
+            [camel-snake-kebab.core :as csk]
             [clojure.algo.generic.functor :as functor]
             [camel-snake-kebab.extras :as csk-extras]
             [eulalie.service-util :as service-util]
@@ -150,12 +152,15 @@
      body spec)))
 
 (defn prepare-query-request
-  [{:keys [version] :as service} {:keys [body target] :as req}]
+  [{:keys [version] :as service-defaults} {:keys [body target] :as req}]
   (let [body (assoc body
                     :version version
                     :action (csk/->PascalCaseString target))]
-    (-> (service-util/default-request service req)
+    (-> (service-util/default-request service-defaults req)
         (assoc :body body)
         (assoc-in [:headers :content-type]
                   "application/x-www-form-urlencoded"))))
 
+(defmethod eulalie/transform-request-body :eulalie.service.generic/query-request
+  [{:keys [body] :as req}]
+  (assoc req :body (-> body format-query-request log-query url/map->query)))

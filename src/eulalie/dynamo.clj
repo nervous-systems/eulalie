@@ -34,33 +34,30 @@
                     (min max-backoff-ms)
                     async/timeout))))
 
-(defrecord DynamoService [service-name region target-prefix max-retries]
-  AmazonWebService
+(def service-name "dynamodb")
+(def target-prefix "DynamoDB_20120810.")
 
-  (prepare-request [{:keys [target-prefix] :as service} req]
-    (let [req (default-request service req)]
-      (update-in req [:headers] merge
-                 {:content-type "application/x-amz-json-1.0"
-                  :x-amz-target (req-target target-prefix req)})))
+(def service-defaults
+  {:region "us-east-1"
+   :service-name service-name
+   :max-retries 10})
 
-  (transform-request [_ req]
-    (some-> req mapping/transform-request cheshire/encode))
+(defmethod prepare-request :eulalie.service/dynamo [req]
+  (let [req (default-request service-defaults req)]
+    (-> req
+        (update-in [:headers] merge
+                   {:content-type "application/x-amz-json-1.0"
+                    :x-amz-target (req-target target-prefix req)})
+        (assoc :service-name service-name))))
 
-  (transform-response [_ resp]
-    (some-> resp (cheshire/decode true) mapping/transform-response))
+(defmethod transform-request-body :eulalie.service/dynamo [{:keys [body] :as req}]
+  (assoc req :body (some-> body mapping/transform-request cheshire/encode)))
 
-  (transform-response-error [_ resp]
-    (some-> resp :body (cheshire/decode true) body->error))
+(defmethod transform-response-body :eulalie.service/dynamo [req body]
+  (some-> body (cheshire/decode true) mapping/transform-response))
 
-  (request-backoff [_ retry-count error]
-    (backoff retry-count))
+(defmethod transform-response-error :eulalie.service/dynamo [req resp]
+  (some-> resp :body (cheshire/decode true) body->error))
 
-  (sign-request [{:keys [service-name]} req]
-    (sign/aws4-sign service-name req)))
-
-(def service
-  (DynamoService.
-   "dynamodb"
-   "us-east-1"
-   "DynamoDB_20120810."
-   10))
+(defmethod request-backoff :eulalie.service/dynamo [req retries error]
+  (backoff retries))

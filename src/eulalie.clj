@@ -1,5 +1,6 @@
 (ns eulalie
   (:require
+   [eulalie.sign :as sign]
    [org.httpkit.client :as http]
    [clojure.tools.logging :as log]
    [clojure.walk :as walk]
@@ -19,20 +20,32 @@
     :url      str
     :headers  walk/stringify-keys]))
 
-(defprotocol AmazonWebService
-  (prepare-request    [this req])
-  (transform-request  [this req])
-  (transform-response [this resp])
-  (transform-response-error [this resp])
-  (request-backoff    [this retry-count error])
-  (sign-request       [this req]))
+(defn req->service-value [{:keys [service]}]
+  (keyword "eulalie.service" (name service)))
+
+(defmulti prepare-request   req->service-value)
+(defmulti transform-request-body req->service-value)
+
+(defmulti transform-response-body  (fn [req body] (req->service-value req)))
+(defmulti transform-response-error (fn [req resp] (req->service-value req)))
+
+(defmulti  request-backoff (fn [req retries error] (req->service-value req)))
+(defmethod request-backoff :default [_ retries error]
+  (default-retry-backoff retries error))
+
+(defmulti  sign-request req->service-value)
+(defmethod sign-request :default [{:keys [service-name] :as req}]
+  ;; After prepare-request, we expect there to be a canonical service name on
+  ;; the request, e.g. "dynamodb", rather than :dynamo
+  (sign/aws4-sign service-name req))
 
 (defn prepare-req
-  [{:keys [endpoint headers] :as req} service]
+  [{:keys [endpoint headers] :as req}]
 
   (let [{:keys [body] :as req}
-        (-> (prepare-request service req)
-            (update-in [:body] #(transform-request service %))
+        (-> req
+            prepare-request
+            transform-request-body
             (update-in [:endpoint] concretize-port))]
     ;; this needs to go away, can't assume it can be counted now
     (update-in req [:headers] merge
@@ -40,64 +53,48 @@
 
 (def ok? (fn-> :status (= 200)))
 
-(defn parse-error [service {:keys [headers body] :as resp}]
+(defn parse-error [req {:keys [headers body] :as resp}]
   (decorate-error
    (if-let [e (headers->error-type headers)]
      {:type e}
-     (or (transform-response-error service resp)
+     (or (transform-response-error req resp)
          {:type :unrecognized}))
    resp))
 
 (defn handle-result
-  [service
-   {aws-resp :response
+  [{aws-resp :response
     retries  :retries
-    {:keys [max-retries]} :request :as result}]
+    {:keys [max-retries] :as req} :request :as result}]
 
   (if-not (response-checksum-ok? aws-resp)
     [:error {:type :crc32-mismatch}]
     (if (ok? aws-resp)
-      [:ok (->> aws-resp :body (transform-response service))]
+      [:ok (->> aws-resp :body (transform-response-body req))]
       (let [error (or (http-kit->error (:error aws-resp))
-                      (parse-error service aws-resp))]
+                      (parse-error req aws-resp))]
         (if (and (retry? (:status aws-resp) error) (< retries max-retries))
-          [:retry {:timeout (request-backoff service retries error)
+          [:retry {:timeout (request-backoff req retries error)
                    :error   error}]
           [:error error])))))
 
-(def load-internal-service
-  (memoize
-   (fn [service]
-     (let [service-ns (->> service name (str "eulalie.") symbol)]
-       (require service-ns)
-       (var-get (ns-resolve service-ns 'service))))))
-
-(defmulti  resolve-service identity)
-(defmethod resolve-service :default [service]
-  ;; ad-hoc services can be passed in
-  (if (satisfies? AmazonWebService service)
-    service
-    (load-internal-service service)))
-
 (defn issue-request!
   [{:keys [service creds region] :as request}]
-  (let [service (resolve-service service)]
-    (go-catching
-      (loop [request (prepare-req request service)
-             retries 0]
-        (let [request' (sign-request service request)
-              aws-resp (-> request' req->http-kit channel-request! <?)
-              result   {:response (dissoc aws-resp :opts)
-                        :retries  retries
-                        :request  request'}
-              [label value] (handle-result service result)]
-          (condp = label
-            :ok    (assoc result :body  value)
-            :error (assoc result :error value)
-            :retry (let [{:keys [timeout error]} value
-                         request (merge request (select-keys error [:time-offset]))]
-                     (some-> timeout <?)
-                     (recur request (inc retries)))))))))
+  (go-catching
+    (loop [request (prepare-req request)
+           retries 0]
+      (let [request' (sign-request request)
+            aws-resp (-> request' req->http-kit channel-request! <?)
+            result   {:response (dissoc aws-resp :opts)
+                      :retries  retries
+                      :request  request'}
+            [label value] (handle-result result)]
+        (case label
+          :ok    (assoc result :body  value)
+          :error (assoc result :error value)
+          :retry (let [{:keys [timeout error]} value
+                       request (merge request (select-keys error [:time-offset]))]
+                   (some-> timeout <?)
+                   (recur request (inc retries))))))))
 
 (defn issue-request!! [& args]
   (<?! (apply issue-request! args)))
@@ -105,13 +102,13 @@
 (def make-client-state (partial merge {:jvm-time-offset 0}))
 
 (let [client-state (atom (make-client-state))]
-  (defn issue-request!* [service {:keys [time-offset] :as request}]
+  (defn issue-request!* [{:keys [time-offset] :as request}]
     (go-catching
       (let [request (cond-> request
                       (not time-offset)
                       (assoc :time-offset
                              (-> client-state deref :jvm-time-offset)))
-            response (<? (issue-request! service request))]
+            response (<? (issue-request! request))]
         (swap! client-state assoc
                :jvm-time-offset (-> response :request :time-offset))
         response)))

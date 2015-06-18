@@ -20,21 +20,13 @@
         {:keys [local-port]} (meta stop-server)]
     {:port local-port :stop! stop-server}))
 
-(defrecord TestService []
-  AmazonWebService
-  (prepare-request [_ req]
-    (merge {:method :post :max-retries 3} req))
-  (transform-request  [_ req] req)
-  (transform-response [_ resp] resp)
-  (transform-response-error [_ resp] nil)
-  (request-backoff [_ retries error])
-  (sign-request    [_ req]
-    (sign/aws4-sign "testservice" req)))
+(defmethod prepare-request :eulalie.service/test-service [req]
+  (merge {:method :post :max-retries 3 :service-name "testservice"} req))
+(defmethod transform-request-body   :eulalie.service/test-service [req] req)
+(defmethod transform-response-body  :eulalie.service/test-service [req body] body)
+(defmethod transform-response-error :eulalie.service/test-service [req resp] nil)
 
-(def test-service
-  (TestService.))
-
-(def issue-request* (fn-> (assoc :service test-service) issue-request!!))
+(def issue-request* (fn-> (assoc :service :test-service) issue-request!!))
 
 (defn with-local-server [resps bodyf]
   (let [resps (cond->> resps

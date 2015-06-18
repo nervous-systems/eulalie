@@ -4,9 +4,12 @@
    [clojure.core.async :as async]
    [cemerick.url :refer [url]]
    [eulalie :refer :all]
+   [eulalie.dynamo]
    [eulalie.util :refer :all]
    [clojure.test :refer :all])
   (:import [clojure.lang ExceptionInfo]))
+
+(def local-dynamo-url (some-> (System/getenv) (get "LOCAL_DYNAMO_URL") url))
 
 (defn issue [target content & [req-overrides]]
   (let [req (merge
@@ -94,6 +97,7 @@
    [[:index-status]
     [:index-size-bytes]
     [:item-count]
+    [:index-arn]
     [:provisioned-throughput :number-of-decreases-today]]))
 
 (defn matches-create-request [req resp]
@@ -316,3 +320,36 @@
            (issue* :get-item {:table-name table
                               :key item-attrs
                               :attributes-to-get [:name]})))))
+
+(def stream-table :eulalie-test-stream-table)
+(def stream-table-create
+  {:table-name stream-table
+   :attribute-definitions
+   [(attr [:name :S])]
+   :key-schema
+   [(key-schema [:name :hash])]
+   :provisioned-throughput
+   (throughput [1 1])})
+
+(defn with-local-dynamo [f]
+  (when local-dynamo-url
+    (try
+      (f)
+      (finally
+        (try
+          (issue* :delete-table
+                  {:table-name stream-table}
+                  {:endpoint local-dynamo-url})
+          (catch Exception _))))))
+
+(deftest ^:dynamo-streams stream-table-create+
+  (with-local-dynamo
+    #(let [stream-spec {:stream-enabled true
+                        :stream-view-type :new-image}
+           {{m :stream-specification} :table-description}
+           (issue* :create-table
+                   (assoc stream-table-create
+                          :stream-specification
+                          stream-spec)
+                   {:endpoint local-dynamo-url})]
+       (is (= stream-spec m)))))

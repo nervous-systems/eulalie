@@ -11,6 +11,9 @@
             [eulalie.util.query :as q]
             [eulalie.util.xml   :as x]))
 
+(derive :eulalie.service/sqs :eulalie.service.generic/xml-response)
+(derive :eulalie.service/sqs :eulalie.service.generic/query-request)
+
 (def target->seq-spec
   {:add-permission
    {:accounts [:list "AWSAccountId"]
@@ -192,36 +195,25 @@
    :list-queues   [:many :queue-url]
    :list-dead-letter-source-queues [:many :queue-url]})
 
-(defrecord SQSService [service-name region version max-retries]
-  eulalie/AmazonWebService
+(def service-name "sqs")
 
-  (prepare-request [service {:keys [target] :as req}]
-    (let [{:keys [body] :as req} (q/prepare-query-request service req)]
-      (assoc req :body
-             (as-> body %
-               (prepare-body target %)
-               (q/expand-sequences  % (target->seq-spec target))
-               (q/translate-enums   % enum-keys-out)))))
+(def service-defaults
+  {:version "2012-11-05"
+   :region "us-east-1"
+   :service-name service-name
+   :max-retries 3})
 
-  (transform-request [_ body]
-    (-> body q/format-query-request q/log-query url/map->query))
+(defmethod eulalie/prepare-request :eulalie.service/sqs [{:keys [target] :as req}]
+  (let [{:keys [body] :as req} (q/prepare-query-request service-defaults req)]
+    (assoc req
+           :service-name service-name
+           :body (as-> body %
+                   (prepare-body target %)
+                   (q/expand-sequences  % (target->seq-spec target))
+                   (q/translate-enums   % enum-keys-out)))))
 
-  (transform-response [_ body]
-    ;; FIXME we want the request also here, for target
-    (let [elem   (x/string->xml-map body)
-          [tag]  (keys elem)
-          target (keyword (util/to-first-match (name tag) "-response"))]
-      (->> (x/extract-response-value target elem target->elem-spec)
-           (restructure-response target))))
-
-  (transform-response-error [_ {:keys [body] :as resp}]
-    (x/parse-xml-error body))
-
-  (request-backoff [_ retry-count error]
-    (service-util/default-retry-backoff retry-count error))
-
-  (sign-request [_ req]
-    (sign/aws4-sign "sqs" req)))
-
-(def service
-  (SQSService. "sqs" "us-east-1" "2012-11-05"  3))
+(defmethod eulalie/transform-response-body :eulalie.service/sqs
+  [{:keys [target] :as req} body]
+  (let [elem (x/string->xml-map body)]
+    (->> (x/extract-response-value target elem target->elem-spec)
+         (restructure-response target))))

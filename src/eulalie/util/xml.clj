@@ -1,9 +1,9 @@
 (ns eulalie.util.xml
-  (:require [camel-snake-kebab.core :as csk]
+  (:require [eulalie]
+            [camel-snake-kebab.core :as csk]
             [clojure.string :as str]
             [clojure.walk :as walk]
             [clojure.xml :as xml]
-
             [eulalie.util :as util]))
 
 (defn xml-map [mess]
@@ -69,3 +69,7 @@
       :many  (map content (children resp elem))
       :attrs (attrs->map resp))
     resp))
+
+(defmethod eulalie/transform-response-error
+  :eulalie.service.generic/xml-response [req {:keys [body] :as resp}]
+  (parse-xml-error body))

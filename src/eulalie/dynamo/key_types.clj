@@ -10,7 +10,7 @@
 (def enum-keys
   #{:key-type :projection-type :select :table-status :index-status
     :return-consumed-capacity :return-values :return-item-collection-metrics
-    :comparison-operator :conditional-operator :action})
+    :comparison-operator :conditional-operator :action :stream-view-type})
 
 (def keyword-keys
   #{:attribute-name :attribute-type :table-name :index-name :non-key-attributes
@@ -19,6 +19,7 @@
 (def request-key-types
   (merge
    {:projection-expression  :list
+    :stream-specification   :nest
     :put-request            :nest
     :delete-request         :nest
     :projection             :nest
