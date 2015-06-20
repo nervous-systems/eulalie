@@ -6,6 +6,7 @@
             [camel-snake-kebab.core :as csk]))
 
 (defn parse-json-body [x]
+  ;; Amazon's war against Content-Type continues
   (cond-> x (and x (pos? (count x)) (= (subs x 0 1) "{"))
           (json/decode csk/->kebab-case-keyword)))
 
@@ -13,7 +14,7 @@
   "(retrieve! :local-ipv4)
    (retrieve! [:iam :security-credentials :xyz])"
   [path &
-   [{:keys [url parse-json channel]
+   [{:keys [url parse-json]
      :or {url "http://169.254.169.254/latest/meta-data"
           parse-json false}}]]
   (let [path (cond-> path (not (coll? path)) vector)
