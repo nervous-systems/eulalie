@@ -42,7 +42,14 @@
   [path & [args]]
   (retrieve! path (assoc args :pre-path
                          [:latest :dynamic :instance-identity])))
-(def instance-metadata!! (comp util/<?! instance-identity!))
+(def instance-identity!! (comp util/<?! instance-identity!))
+
+(defn identity-key! [k]
+  (go-catching
+    (-> (instance-identity! :document {:parse-json true})
+        <?
+        (get (keyword k)))))
+(def identity-key!! (comp util/<?! identity-key!))
 
 (defn default-iam-role! []
   (go-catching
