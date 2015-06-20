@@ -32,16 +32,19 @@
   (go-catching
     (some-> (retrieve! [:iam :security-credentials]) <?
             (util/to-first-match "\n") not-empty)))
+(def default-iam-role!! (comp util/<?! default-iam-role!))
 
 (defn iam-credentials! [role]
   (retrieve!
    [:iam :security-credentials (name role)]
    {:parse-json true}))
+(def iam-credentials!! (comp util/<?! iam-credentials!))
 
 (defn default-iam-credentials! []
   (go-catching
     (when-let [default-role (<? (default-iam-role!))]
       (<? (iam-credentials! default-role)))))
+(def default-iam-credentials!! (comp util/<?! default-iam-credentials!))
 
 (defn retrieve-many!
   "(retrieve-many! [:local-ipv4 :other-key])
@@ -51,5 +54,4 @@
     (let [ch->tag (into {} (for [k ks] [(retrieve! k) k]))
           tag-ch  (util/merge-tagged ch->tag (async/buffer (count ks)))]
       (util/mapvals util/throw-err (<! (async/into {} tag-ch))))))
-
 (def retrieve-many!! (comp util/<?! retrieve-many!))
