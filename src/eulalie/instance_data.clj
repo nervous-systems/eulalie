@@ -44,8 +44,8 @@
       (<? (iam-credentials! default-role)))))
 
 (defn retrieve-many!
-  "(retrieve-many! [:local-ipv4 [:iam :security-credentials]])
-  -> {:local-ipv4 ... [:iam :security-credentials :xyz] ...}"
+  "(retrieve-many! [:local-ipv4 :other-key])
+  -> {:local-ipv4 ... other-key ...}"
   [ks]
   (go-catching
     (let [ch->tag (into {} (for [k ks] [(retrieve! k) k]))
