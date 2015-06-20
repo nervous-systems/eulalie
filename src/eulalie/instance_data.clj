@@ -14,26 +14,39 @@
           (json/decode csk/->kebab-case-keyword)))
 
 (defn retrieve!
-  "(retrieve! :local-ipv4)
-   (retrieve! [:iam :security-credentials :xyz])"
+  "(retrieve! [:latest :dynamic :instance-identity :document] {:parse-json true})"
   [path &
-   [{:keys [url parse-json]
-     :or {url "http://169.254.169.254/latest/meta-data"
+   [{:keys [host pre-path parse-json]
+     :or {host "169.254.169.254"
           parse-json false}}]]
   (let [path (cond-> path (not (coll? path)) vector)
-        url  (str/join "/" (into [url] (map name path)))]
+        url  (str "http://" host "/"
+                  (str/join "/"
+                            (map name path)))]
     (go
       (let [{:keys [error body status] :as response}
             (<! (util/channel-request! {:url url}))]
         (cond error error
               (= status 200) (cond-> body parse-json parse-json-body)
               :else nil)))))
-
 (def retrieve!! (comp util/<?! retrieve!))
+
+(defn meta-data!
+  "(meta-data! [:iam :security-credentials])"
+  [path & [args]]
+  (retrieve! path (assoc args :pre-path [:latest :meta-data])))
+(def meta-data!! (comp util/<?! meta-data!))
+
+(defn instance-identity!
+  "(instance-identity! :document {:parse-json true})"
+  [path & [args]]
+  (retrieve! path (assoc args :pre-path
+                         [:latest :dynamic :instance-identity])))
+(def instance-metadata!! (comp util/<?! instance-identity!))
 
 (defn default-iam-role! []
   (go-catching
-    (some-> (retrieve! [:iam :security-credentials]) <?
+    (some-> (meta-data! [:iam :security-credentials]) <?
             (util/to-first-match "\n") not-empty)))
 (def default-iam-role!! (comp util/<?! default-iam-role!))
 
@@ -49,7 +62,7 @@
 
 (defn iam-credentials! [role]
   (go-catching
-    (-> (retrieve!
+    (-> (meta-data!
          [:iam :security-credentials (name role)]
          {:parse-json true})
         <?
@@ -61,13 +74,3 @@
     (when-let [default-role (<? (default-iam-role!))]
       (<? (iam-credentials! default-role)))))
 (def default-iam-credentials!! (comp util/<?! default-iam-credentials!))
-
-(defn retrieve-many!
-  "(retrieve-many! [:local-ipv4 :other-key])
-  -> {:local-ipv4 ... other-key ...}"
-  [ks]
-  (go-catching
-    (let [ch->tag (into {} (for [k ks] [(retrieve! k) k]))
-          tag-ch  (util/merge-tagged ch->tag (async/buffer (count ks)))]
-      (util/mapvals util/throw-err (<! (async/into {} tag-ch))))))
-(def retrieve-many!! (comp util/<?! retrieve-many!))
