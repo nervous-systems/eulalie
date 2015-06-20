@@ -55,12 +55,6 @@
     out-chan))
 
 (defn periodically-refresh!
-  ([creds-atom]
-   (go-catching
-     (if-let [default-role (<? (instance-data/default-iam-role!))]
-       (periodically-refresh! creds-atom default-role)
-       (throw (ex-info "no-default-iam-role" {:type :no-default-iam-role})))))
-
   ([creds-atom role]
    (let [creds (credential-channel! #(instance-data/iam-credentials! role))]
      (go-catching
@@ -71,4 +65,4 @@
                        :data {:creds current-creds}}))
            (reset! creds-atom current-creds)
            (recur))))
-     #(async/close! creds))))
+     creds)))
