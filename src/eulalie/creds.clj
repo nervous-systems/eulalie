@@ -23,12 +23,12 @@
   retrieved from retrieval-fn, scheduling the next invocation just prior to
   expiry.  On error, the exception will be written to the output channel before
   closing.  Closing the output channel will terminate early."
-  [retrieval-fn {:keys [expiration] :as initial-creds} & [{:keys [out-chan]}]]
+  [{:keys [expiration] :as initial-creds} retrieval-fn & [{:keys [out-chan]}]]
   (let [out-chan (or out-chan (async/chan))
         now      (System/currentTimeMillis)
         loop-chan
         (go-catching
-          (when (and expiration (< expiration now))
+          (when expiration
             (<! (creds-timeout-chan expiration now)))
           (loop []
             (let [{:keys [expiration] :as creds} (<? (retrieval-fn))
