@@ -3,7 +3,10 @@
             [clojure.string :as str]
             [eulalie.util :as util :refer [go-catching <?]]
             [cheshire.core :as json]
-            [camel-snake-kebab.core :as csk]))
+            [clojure.set :as set]
+            [camel-snake-kebab.core :as csk]
+            [clj-time.format :as time.format]
+            [clj-time.coerce :as time.coerce]))
 
 (defn parse-json-body [x]
   ;; Amazon's war against Content-Type continues
@@ -34,10 +37,23 @@
             (util/to-first-match "\n") not-empty)))
 (def default-iam-role!! (comp util/<?! default-iam-role!))
 
+(let [seconds-formatter (time.format/formatters :date-time-no-ms)]
+  (defn from-iso-seconds [x]
+    (time.coerce/to-long (time.format/parse seconds-formatter x))))
+
+(defn tidy-iam-creds [m]
+  (-> m
+      (set/rename-keys {:access-key-id :access-key
+                        :secret-access-key :secret-key})
+      (update-in [:expiration] from-iso-seconds)))
+
 (defn iam-credentials! [role]
-  (retrieve!
-   [:iam :security-credentials (name role)]
-   {:parse-json true}))
+  (go-catching
+    (-> (retrieve!
+         [:iam :security-credentials (name role)]
+         {:parse-json true})
+        <?
+        tidy-iam-creds)))
 (def iam-credentials!! (comp util/<?! iam-credentials!))
 
 (defn default-iam-credentials! []
