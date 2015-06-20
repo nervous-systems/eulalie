@@ -5,7 +5,8 @@
             [clojure.string :as string]
             [clojure.algo.generic.functor :as functor]
             [clj-time.core :as clj-time]
-            [clj-time.coerce])
+            [clj-time.coerce]
+            [org.httpkit.client :as http])
   (:import java.nio.charset.Charset))
 
 (defmethod functor/fmap clojure.lang.Keyword [f v] (f v))
@@ -64,8 +65,8 @@
 (defmacro <? [ch]
   `(throw-err (async/<! ~ch)))
 
-(defmacro <?! [ch]
-  `(throw-err (async/<!! ~ch)))
+(defn <?! [ch]
+  (throw-err (async/<!! ch)))
 
 (defn- when-not-pred-fn [p]
   #(when-not (p %)
@@ -151,3 +152,22 @@
 
 (defn get-utf8-bytes ^bytes [^String s]
   (.getBytes s ^Charset utf-8))
+
+(defn channel-request! [m]
+  (let [ch (async/chan)]
+    (http/request m #(close-with! ch %))
+    ch))
+
+(defn merge-tagged
+  ([ch->tag] (merge-tagged ch->tag nil))
+  ([ch->tag buf-or-n]
+   (let [out (async/chan buf-or-n)]
+     (async/go-loop [cs (vec (keys ch->tag))]
+       (if (pos? (count cs))
+         (let [[v c] (async/alts! cs)]
+           (if (nil? v)
+             (recur (filterv #(not= c %) cs))
+             (do (async/>! out [(ch->tag c) v])
+                 (recur cs))))
+         (async/close! out)))
+     out)))

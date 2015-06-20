@@ -1,18 +1,12 @@
 (ns eulalie
   (:require
    [eulalie.sign :as sign]
-   [org.httpkit.client :as http]
    [clojure.tools.logging :as log]
    [clojure.walk :as walk]
    [clojure.core.async :as async]
    [cemerick.url :refer [url]]
    [eulalie.service-util :refer :all]
    [eulalie.util :refer :all]))
-
-(defn channel-request! [m]
-  (let [ch (async/chan)]
-    (http/request m #(close-with! ch %))
-    ch))
 
 (def req->http-kit
   (map-rewriter

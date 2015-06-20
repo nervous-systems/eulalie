@@ -2,6 +2,7 @@
   (:require [eulalie.util :refer :all]
             [eulalie.sign-util :refer :all]
             [eulalie.service-util :refer [aws-date-format aws-date-time-format]]
+            [eulalie.creds]
             [clojure.string :as string]
             [cemerick.url    :as url]
             [clojure.set     :refer [rename-keys]]
@@ -81,13 +82,15 @@
 
 (defn aws4-sign
   [service-name
-   {:keys [time-offset endpoint body date] :as r}]
+   {:keys [time-offset endpoint body date creds] :as r}]
 
-  (let [{{:keys [token access-key] :as creds} :creds date :date :as r}
+  (let [{:keys [access-key token] :as creds}
+        (-> creds eulalie.creds/creds->credentials sanitize-creds)
+        { date :date :as r}
         (-> r
+            (assoc :creds creds)
             (assoc :date (or (some-> date time-coerce/from-long)
-                             (signature-date (or time-offset 0))))
-            (update-in [:creds] sanitize-creds))
+                             (signature-date (or time-offset 0)))))
         r   (add-headers r (required-headers r))
 
         hash  (digest/sha-256 body)
