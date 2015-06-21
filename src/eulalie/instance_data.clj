@@ -34,15 +34,15 @@
 (defn meta-data!
   "(meta-data! [:iam :security-credentials])"
   [path & [args]]
-  (retrieve! path (flatten (conj [:latest :meta-data] path))))
+  (retrieve! (flatten (conj [:latest :meta-data] path)) args))
 (def meta-data!! (comp util/<?! meta-data!))
 
 (defn instance-identity!
   "(instance-identity! :document {:parse-json true})"
   [path & [args]]
   (retrieve!
-   path
-   (flatten (conj [:latest :dynamic :instance-identity] path))))
+   (flatten (conj [:latest :dynamic :instance-identity] path))
+   args))
 
 (def instance-identity!! (comp util/<?! instance-identity!))
 
