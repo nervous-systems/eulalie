@@ -16,7 +16,7 @@
 (defn retrieve!
   "(retrieve! [:latest :dynamic :instance-identity :document] {:parse-json true})"
   [path &
-   [{:keys [host pre-path parse-json]
+   [{:keys [host parse-json]
      :or {host "169.254.169.254"
           parse-json false}}]]
   (let [path (cond-> path (not (coll? path)) vector)
@@ -34,14 +34,16 @@
 (defn meta-data!
   "(meta-data! [:iam :security-credentials])"
   [path & [args]]
-  (retrieve! path (assoc args :pre-path [:latest :meta-data])))
+  (retrieve! path (flatten (conj [:latest :meta-data] path))))
 (def meta-data!! (comp util/<?! meta-data!))
 
 (defn instance-identity!
   "(instance-identity! :document {:parse-json true})"
   [path & [args]]
-  (retrieve! path (assoc args :pre-path
-                         [:latest :dynamic :instance-identity])))
+  (retrieve!
+   path
+   (flatten (conj [:latest :dynamic :instance-identity] path))))
+
 (def instance-identity!! (comp util/<?! instance-identity!))
 
 (defn identity-key! [k]
