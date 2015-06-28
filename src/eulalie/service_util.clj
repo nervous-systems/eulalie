@@ -140,6 +140,7 @@
   (let [region (some :region [req creds service])
         endpoint (some :endpoint [req creds])]
     (merge {:max-retries max-retries
-            :endpoint (or endpoint
+            :endpoint (or (cond-> endpoint
+                            (string? endpoint) url/url)
                           (region->endpoint region service))
             :method :post} req)))
