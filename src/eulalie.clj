@@ -49,7 +49,8 @@
         (update-in [:headers] merge
                    {:content-length (count (get-utf8-bytes body))}))))
 
-(def ok? (fn-> :status (= 200)))
+(defn ok? [{:keys [status]}]
+  (and status (<= 200 status 299)))
 
 (defn parse-error [req {:keys [headers body] :as resp}]
   (decorate-error

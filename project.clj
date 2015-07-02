@@ -20,6 +20,7 @@
    [cheshire                   "5.5.0"]
    [digest                     "1.4.4"]
    [clj-time                   "0.9.0"]
+   [base64-clj                 "0.1.1"]
 
    [ch.qos.logback/logback-classic "1.1.2"]]
   :exclusions [[org.clojure/clojure]]
