@@ -5,6 +5,9 @@
 Asynchronous, pure-Clojure AWS client.  There is currently no
 documentation.  Dynamo, SNS and SQS are fully supported.
 
+There is also support for [Lambda](http://aws.amazon.com/documentation/lambda/)
+invocations and the retrieval of EC2 instance metadata.
+
 Higher-level clients built with Eulalie:
 
  - [Hildebrand, a DynamoDB client](https://github.com/nervous-systems/hildebrand)
@@ -14,10 +17,13 @@ Higher-level clients built with Eulalie:
 
 ```clojure
 (eulalie/issue-request!
-  eulalie.dynamo/service
-  {:access-key ... :secret-key ...}
+  :dynamo
+  creds
   {:target :describe-table
    :body {:table-name ...}})
+;; Where creds is {:access-key, :secret-key} and/or optionally:
+;; {:region, :endpoint, :token}
+
 ```
 
 ## License
