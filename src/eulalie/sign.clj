@@ -6,7 +6,6 @@
             [clojure.string :as string]
             [cemerick.url    :as url]
             [clojure.set     :refer [rename-keys]]
-            [clojure.tools.logging :as log]
             [clj-time.core :as time]
             [clj-time.format :as time-format]
             [clj-time.coerce :as time-coerce]

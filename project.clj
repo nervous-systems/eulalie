@@ -8,10 +8,10 @@
   :global-vars {*warn-on-reflection* true}
   :source-paths ["src" "test"]
   :dependencies
-  [[org.clojure/clojure        "1.6.0"]
+  [[org.clojure/clojure        "1.7.0"]
    [org.clojure/core.async     "0.1.346.0-17112a-alpha"]
-   [org.clojure/tools.logging  "0.3.1"]
    [org.clojure/algo.generic   "0.1.2"]
+   [org.clojure/clojurescript  "0.0-3308"]
 
    [camel-snake-kebab          "0.3.0"]
 
@@ -24,6 +24,10 @@
 
    [ch.qos.logback/logback-classic "1.1.2"]]
   :exclusions [[org.clojure/clojure]]
+  :node-dependencies [[source-map-support "0.2.8"]
+                      [node-crc "3.3.0"]]
+  :plugins [[lein-cljsbuild "1.0.6"]
+            [lein-npm "0.5.0"]]
 
   :profiles {:dev
              {:dependencies
@@ -33,4 +37,13 @@
                              fasterxml.jackson.core/jackson-core]]
                [org.slf4j/jcl-over-slf4j   "1.7.7"]]
               :source-paths ["src" "test"]
-              :aot [eulalie.TestableAWS4Signer]}})
+              :aot [eulalie.TestableAWS4Signer]}}
+
+  :cljsbuild
+  {:builds [{:id "eulalie"
+             :source-paths ["src"]
+             :compiler {:output-to "out/eulalie.js"
+                        :output-dir "out"
+                        :target :nodejs
+                        :optimizations :none
+                        :source-map true}}]})

@@ -10,12 +10,7 @@
             [clojure.string :as str]
             [clojure.walk :as walk]
             [eulalie.util :as util]
-            [cheshire.core :as json]
-            [clojure.tools.logging :as log]))
-
-(defn log-query [q]
-  (log/debug "Outgoing query map" (with-out-str (clojure.pprint/pprint q)))
-  q)
+            [cheshire.core :as json]))
 
 (defn nested-json-out [m]
   (->> m
@@ -163,4 +158,4 @@
 
 (defmethod eulalie/transform-request-body :eulalie.service.generic/query-request
   [{:keys [body] :as req}]
-  (-> body format-query-request log-query url/map->query))
+  (-> body format-query-request url/map->query))

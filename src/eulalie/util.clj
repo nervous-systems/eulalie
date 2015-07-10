@@ -1,6 +1,5 @@
 (ns eulalie.util
-  (:require [clojure.tools.logging :as log]
-            [clojure.set :refer [rename-keys]]
+  (:require [clojure.set :refer [rename-keys]]
             [clojure.core.async :as async]
             [clojure.string :as string]
             [clojure.algo.generic.functor :as functor]
@@ -17,7 +16,7 @@
      (try
        ~@body
        (catch Exception e#
-         (log/error e# "Caught exception in (go) block")
+         (.printStackTrace e#)
          e#))))
 
 (defn map-rewriter [spec]

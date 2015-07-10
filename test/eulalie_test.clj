@@ -1,7 +1,7 @@
 (ns eulalie-test
   (:require
    [cemerick.url :refer [url]]
-   [eulalie.service-util :refer [aws-date-time-format time->rfc822]]
+   [eulalie.util.service :refer [aws-date-time-format time->rfc822]]
    [eulalie :refer :all]
    [eulalie.util :refer :all]
    [eulalie.sign :as sign]

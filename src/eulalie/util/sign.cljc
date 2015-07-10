@@ -1,7 +1,6 @@
 (ns eulalie.sign-util
   (:require [eulalie.util :refer :all]
-            [clojure.string :as string]
-            [clojure.tools.logging :as log])
+            [clojure.string :as string])
   (:import [org.joda.time.format
             DateTimeFormatter
             DateTimeFormat]

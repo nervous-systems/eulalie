@@ -1,6 +1,5 @@
 (ns eulalie.creds
   (:require [clojure.core.async :as async :refer [>! <!]]
-            [clojure.tools.logging :as log]
             [eulalie.util :refer [<? go-catching]]
             [eulalie.instance-data :as instance-data]))
 
@@ -37,9 +36,6 @@
                 (throw (ex-info "expired-credentials"
                                 {:type :expired-credentials :now now :creds creds}))
                 (when (>! out-chan creds)
-                  (log/info (pr-str
-                             {:event :scheduled-credential-fetch
-                              :data {:expiration expiration}}))
                   (<! (creds-timeout-chan expiration now))
                   (recur))))))]
     (async/pipe loop-chan out-chan)
@@ -52,9 +48,6 @@
      (go-catching
        (loop []
          (when-let [current-creds (<? creds)]
-           (log/info (pr-str
-                      {:event :credential-reset
-                       :data {:creds current-creds}}))
            (reset! creds-atom current-creds)
            (recur))))
      creds)))
