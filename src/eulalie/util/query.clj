@@ -1,16 +1,17 @@
 (ns ^{:doc "Utilities for query parameter-based services"}
   eulalie.util.query
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [cemerick.url :as url]
             [camel-snake-kebab.core :as csk]
-            [clojure.algo.generic.functor :as functor]
             [camel-snake-kebab.extras :as csk-extras]
-            [eulalie.service-util :as service-util]
+            [eulalie.util.functor :refer [fmap]]
+            [eulalie.util.service :as util.service]
             [clojure.set :as set]
             [clojure.string :as str]
             [clojure.walk :as walk]
             [eulalie.util :as util]
-            [cheshire.core :as json]))
+            [cheshire.core :as json]
+            [plumbing.core :refer [map-keys]]))
 
 (defn nested-json-out [m]
   (->> m
@@ -46,9 +47,9 @@
          ;; Stringify, so we don't later rename
          (assoc :principal
                 (if (map? principal)
-                  (util/mapkeys name principal)
+                  (map-keys name principal)
                   (name principal)))
-         (update-in [:action] (partial functor/fmap xform-value))
+         (update-in [:action] (partial fmap xform-value))
          (update-in [:effect] xform-value)))))
 
 (defn policy-json-out [policy]
@@ -151,7 +152,7 @@
   (let [body (assoc body
                     :version version
                     :action (csk/->PascalCaseString target))]
-    (-> (service-util/default-request service-defaults req)
+    (-> (util.service/default-request service-defaults req)
         (assoc :body body)
         (assoc-in [:headers :content-type]
                   "application/x-www-form-urlencoded"))))

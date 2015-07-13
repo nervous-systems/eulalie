@@ -4,12 +4,13 @@
             [cemerick.url :as url]
             [cheshire.core :as json]
             [clojure.set :as set]
-            [eulalie]
-            [eulalie.service-util :as service-util]
+            [eulalie.core :as eulalie]
+            [eulalie.util.service :as util.service]
             [eulalie.sign :as sign]
             [eulalie.util :as util]
             [eulalie.util.query :as q]
-            [eulalie.util.xml   :as x]))
+            [eulalie.util.xml   :as x]
+            [plumbing.core :refer [map-vals]]))
 
 (derive :eulalie.service/sqs :eulalie.service.generic/xml-response)
 (derive :eulalie.service/sqs :eulalie.service.generic/query-request)
@@ -149,7 +150,7 @@
 (defn children-by-attr [parent unique-attr attrs]
   (->> (map #(x/child-content->map % attrs) parent)
        (group-by unique-attr)
-       (util/mapvals first)))
+       (map-vals first)))
 
 (def failed-batch-attr-renames
   {:code :code :id :batch-id :message :message :sender-fault :sender-fault})
@@ -158,7 +159,7 @@
   (let [ms (-> body
                (x/children :batch-result-error-entry)
                (children-by-attr :batch-id failed-batch-attr-renames))]
-    (util/mapvals #(update-in % [:code] csk/->kebab-case-keyword) ms)))
+    (map-vals #(update-in % [:code] csk/->kebab-case-keyword) ms)))
 
 (defmethod restructure-response :delete-message-batch [_ body]
   {:succeeded

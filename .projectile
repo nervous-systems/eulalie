@@ -1,4 +1,6 @@
 -.git
 -target
-.lein*
-.nrepl-port
+-.lein*
+-.nrepl-port
+-out
+-node_modules

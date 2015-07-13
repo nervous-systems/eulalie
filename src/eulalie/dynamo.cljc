@@ -1,9 +1,12 @@
 (ns eulalie.dynamo
-  (:require [eulalie]
-            [clojure.core.async :as async]
+  (:require [eulalie.core :as eulalie]
             [eulalie.util.json.mapping :as json.mapping]
             [eulalie.dynamo.key-types :as key-types]
-            [eulalie.util.json :as util.json]))
+            [eulalie.util.json :as util.json]
+            #? (:clj
+                [clojure.core.async :as async]
+                :cljs
+                [cljs.core.async :as async])))
 
 (derive :eulalie.service/dynamo :eulalie.service.generic/json-response)
 (derive :eulalie.service/dynamo :eulalie.service.generic/json-request)

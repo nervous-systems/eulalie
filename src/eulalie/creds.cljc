@@ -1,7 +1,13 @@
 (ns eulalie.creds
-  (:require [clojure.core.async :as async :refer [>! <!]]
-            [eulalie.util :refer [<? go-catching]]
-            [eulalie.instance-data :as instance-data]))
+  (:require [eulalie.util :as util]
+            [eulalie.instance-data :as instance-data]
+            #?@(:clj
+                [[glossop.core :refer [<? go-catching]]
+                 [clojure.core.async :as async :refer [>! <!]]]
+                :cljs
+                [[cljs.core.async :as async :refer [>! <!]]]))
+  #?(:cljs
+     (:require-macros [glossop.macros :refer [go-catching <?]])))
 
 (defmulti  creds->credentials
   "Unfortunately-named mechanism to turn the informally-specified 'creds' map
@@ -24,14 +30,14 @@
   closing.  Closing the output channel will terminate early."
   [{:keys [expiration] :as initial-creds} retrieval-fn & [{:keys [out-chan]}]]
   (let [out-chan (or out-chan (async/chan))
-        now      (System/currentTimeMillis)
+        now      (util/msecs-now)
         loop-chan
         (go-catching
           (when expiration
             (<! (creds-timeout-chan expiration now)))
           (loop []
             (let [{:keys [expiration] :as creds} (<? (retrieval-fn))
-                  now (System/currentTimeMillis)]
+                  now (util/msecs-now)]
               (if (< expiration now)
                 (throw (ex-info "expired-credentials"
                                 {:type :expired-credentials :now now :creds creds}))

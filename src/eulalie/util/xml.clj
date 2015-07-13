@@ -1,5 +1,5 @@
 (ns eulalie.util.xml
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [camel-snake-kebab.core :as csk]
             [clojure.string :as str]
             [clojure.walk :as walk]

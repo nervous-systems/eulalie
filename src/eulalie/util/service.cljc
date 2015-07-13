@@ -1,10 +1,12 @@
 (ns eulalie.util.service
   (:require
-   [eulalie.util :refer :all]
-   [clojure.core.async :as async]
+   #? (:clj
+       [clojure.core.async :as async]
+       :cljs
+       [cljs.core.async :as async])
+   [eulalie.platform.time :as platform.time]
+   [eulalie.util :as util]
    [clojure.string :as string]
-   [clj-time.format :as time-format]
-   [clj-time.coerce :as time-coerce]
    [cemerick.url :as url]
    [camel-snake-kebab.core :refer
     [->PascalCaseKeyword
@@ -20,12 +22,6 @@
              "http" 80
              "https" 443))))
 
-;; clj-time's :rfc882 formatter uses Z, whereas RFC 882 specifies the
-;; equivalent of either Z or z.  AWS uses z.
-(let [fmt (time-format/formatter "EEE, dd MMM yyyy HH:mm:ss z")]
-  (def rfc822->time (partial time-format/parse fmt))
-  (def time->rfc822 (partial time-format/unparse fmt)))
-
 (defn header [headers header]
   (let [value (headers header)]
     (cond-> value
@@ -34,9 +30,9 @@
 (defn parse-clock-skew [{:keys [headers]}]
   ;; TODO parse from SQS error message
   (or (some->> (header headers :date)
-               rfc822->time
-               time-coerce/to-long
-               (- (msecs-now)))
+               platform.time/rfc822->time
+               platform.time/to-long
+               (- (platform.time/msecs-now)))
       0))
 
 (def throttling-error?
@@ -58,25 +54,15 @@
       (clock-skew-error? type)))
 
 (def headers->error-type
-  (fn-some->
-   (header :x-amzn-errortype) not-empty (to-first-match ":") not-empty
-   ->kebab-case-keyword))
+  #(some->
+    %
+    (header :x-amzn-errortype) not-empty (util/to-first-match ":") not-empty
+    ->kebab-case-keyword))
 
 (defn decorate-error [{:keys [type] :as e} resp]
   (if (clock-skew-error? type)
     (assoc e :time-offset (parse-clock-skew resp))
     e))
-
-(defn http-kit->error [^Exception e]
-  (when e
-    {:message (.getMessage e)
-     :type    (-> e
-                  .getClass
-                  .getSimpleName
-                  (to-first-match "Exception")
-                  ->kebab-case-keyword)
-     :exception e
-     :transport true}))
 
 (let [scale-ms             300
       throttle-scale-ms    500
@@ -94,9 +80,6 @@
             (* scale-factor)
             (min max-backoff-ms)
             async/timeout)))))
-
-(def aws-date-format      (time-format/formatters :basic-date))
-(def aws-date-time-format (time-format/formatters :basic-date-time-no-ms))
 
 (def ->camel-k ->PascalCaseKeyword)
 (def ->kebab-k ->kebab-case-keyword)

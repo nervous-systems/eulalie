@@ -1,16 +1,21 @@
 (ns eulalie.util.json.mapping
   (:require
-   [eulalie]
-   [eulalie.util :refer :all]
-   [clojure.algo.generic.functor :as functor]
+   [eulalie.core :as eulalie]
+   #?(:clj
+      [glossop.misc :refer [fn-some->>]])
+   [eulalie.util.functor :refer [fmap]]
    [clojure.string  :as str]
    [camel-snake-kebab.core
-    :refer [->SCREAMING_SNAKE_CASE_KEYWORD ->kebab-case-keyword ->PascalCaseKeyword]]))
+    :refer [->SCREAMING_SNAKE_CASE_KEYWORD
+            ->kebab-case-keyword
+            ->PascalCaseKeyword]])
+  #?(:cljs
+     (:require-macros [glossop.misc :refer [fn-some->>]])))
 
 ;; This stuff is kind of weird, but I'm afraid to touch it
 
 (defn handle-attr [f v]
-  (functor/fmap
+  (fmap
    (fn [inner]
      (if (map? inner)
        (f inner)
@@ -51,7 +56,7 @@
      key-types
      {:attr (partial handle-attr continue)
       :enum ->kebab-case-keyword
-      :keys #(functor/fmap keyword %)
+      :keys #(fmap keyword %)
       :list #(and (not-empty %)
                   (map keyword (str/split % #",")))}
      m)))

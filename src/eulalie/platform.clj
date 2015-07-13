@@ -1,0 +1,59 @@
+(ns eulalie.platform
+  (:require [glossop.util :refer [close-with!]]
+            [camel-snake-kebab.core :as csk]
+            [clojure.walk :as walk]
+            [eulalie.util :as util]
+            [org.httpkit.client :as http]
+            [clojure.core.async :as async]
+            [cheshire.core :as json]
+            [base64-clj.core :as base64])
+  (:import [java.util.zip CRC32]
+           [java.nio.charset Charset]))
+
+(let [utf-8 (Charset/forName "UTF-8")]
+  (defn get-utf8-bytes ^bytes [^String s]
+    (.getBytes s ^Charset utf-8)))
+
+(defn byte-count [s]
+  (count (get-utf8-bytes s)))
+
+(defn response-checksum-ok? [{:keys [headers body]}]
+  (let [crc (some-> headers :x-amz-crc32 Long/parseLong)]
+    (or (not crc)
+        ;; We're not going to calculate the checksum of gzipped responses, since
+        ;; we need access to the raw bytes - look into how to do this with
+        ;; httpkit
+        (= (:content-encoding headers) "gzip")
+        (= crc (.getValue
+                (doto (CRC32.)
+                  (.update (get-utf8-bytes body))))))))
+
+(defn http-response->error [^Exception e]
+  (when e
+    {:message (.getMessage e)
+     :type    (-> e
+                  .getClass
+                  .getSimpleName
+                  (util/to-first-match "Exception")
+                  csk/->kebab-case-keyword)
+     :exception e
+     :transport true}))
+
+(def req->http-kit
+  (util/map-rewriter
+   [:endpoint :url
+    :url      str
+    :headers  walk/stringify-keys]))
+
+(defn channel-request! [m]
+  (let [ch (async/chan)]
+    (http/request m #(close-with! ch %) )
+    ch))
+
+(defn channel-aws-request! [m]
+  (channel-request! (req->http-kit m)))
+
+(def encode-json json/encode)
+(def decode-json #(json/decode % true))
+(def encode-base64 base64/encode)
+(def decode-base64 base64/decode)

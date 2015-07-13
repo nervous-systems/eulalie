@@ -1,9 +1,9 @@
 (ns eulalie.sns
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [cemerick.url :as url]
             [camel-snake-kebab.core :as csk]
             [camel-snake-kebab.extras :as csk-extras]
-            [eulalie.service-util :as service-util]
+            [eulalie.util.service :as util.service]
             [eulalie.util :as util]
             [eulalie.sign :as sign]
             [eulalie.util.xml :as x]

@@ -1,9 +1,9 @@
 (ns eulalie.dynamo-streams
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [eulalie.util.json.mapping :as json.mapping]
             [eulalie.util.json :as util.json]
             [eulalie.dynamo-streams.key-types :as key-types]
-            [eulalie.service-util :as service-util]))
+            [eulalie.util.service :as util.service]))
 
 (derive :eulalie.service/dynamo-streams :eulalie.service/dynamo)
 
@@ -29,4 +29,4 @@
 ;; We don't want the dynamo backoff strategy
 (defmethod eulalie/request-backoff :eulalie.service/dynamo-streams
   [req retries error]
-  (service-util/default-retry-backoff retries error))
+  (util.service/default-retry-backoff retries error))

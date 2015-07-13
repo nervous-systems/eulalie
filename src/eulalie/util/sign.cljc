@@ -1,12 +1,28 @@
-(ns eulalie.sign-util
-  (:require [eulalie.util :refer :all]
+(ns eulalie.util.sign
+  (:require #? (:cljs [cljs.nodejs :as nodejs])
+            [eulalie.util :as util]
             [clojure.string :as string])
-  (:import [org.joda.time.format
-            DateTimeFormatter
-            DateTimeFormat]
-           [java.util.regex Pattern]))
+  #?(:clj
+     (:import [java.util.regex Pattern])))
 
-(def trim (fn-some-> string/trim))
+#?(:cljs (nodejs/require "regexp-quote"))
+
+(defn quote-region-regex [service-hint]
+  (str "^(?:.+\\.)?"
+       #?(:clj
+          (Pattern/quote service-hint)
+          :cljs
+          (.quote js/RegExp service-hint))
+       "[.-]([a-z0-9-]+)\\."))
+
+(defn host->region [service-hint host]
+  ;; AWS does some CloundFront specific junk with service hints
+  (some-> service-hint
+          quote-region-regex
+          (re-find host)
+          last))
+
+(def trim #(some-> % string/trim))
 
 (defn sanitize-creds [m]
   (into {}
@@ -38,39 +54,28 @@
 
 (defn parse-standard-region-name [fragment]
   ;; AWS has a bunch of S3 & cloudfront special-casing here
-  (let [region (from-last-match fragment ".")]
+  (let [region (util/from-last-match fragment ".")]
     ;; no dot
     (cond (= region fragment) default-region
           (= region "us-gov") "us-gov-west-1"
           :else               region)))
 
-(defn host->region [service-hint host]
-  (when service-hint
-    ;; AWS does some CloundFront specific junk with service hints
-    (let [pattern (re-matcher
-                   (re-pattern
-                    (str "^(?:.+\\.)?"
-                         (Pattern/quote service-hint)
-                         "[.-]([a-z0-9-]+)\\."))
-                   host)]
-      (-> pattern re-find last))))
-
 (defn parse-region-name [service-hint host]
-  (let [prefix (to-last-match host ".amazonaws.com")]
+  (let [prefix (util/to-last-match host ".amazonaws.com")]
     (if (not= prefix host)
       (parse-standard-region-name prefix)
       (or (host->region service-hint host) default-region))))
 
-(defn get-or-calc-region [service-name host]
+(defn get-region [service-name host]
   ;; TODO maybe allow region to be overridden?  it's not clear under
   ;; what circumstances we won't be able to figure it out.
   (parse-region-name service-name host))
 
 (def collapse-whitespace
-  (fn-some-> (string/replace #"\s+" " ")))
+  #(some-> % str (string/replace #"\s+" " ")))
 
 (def strip-down-header
-  (fn-some-> string/lower-case collapse-whitespace))
+  #(some-> % string/lower-case collapse-whitespace))
 
 (defn canonical-header [[k v]]
   [(strip-down-header
@@ -85,13 +90,13 @@
                (into (sorted-map)))]
     [(keys m)
      (->> m
-          (map (fn->> (string/join ":")))
+          (map #(string/join ":" %))
           (apply newline-join))]))
 
 (defn make-header-value [v params]
   (str v (some->>
           params
-          (map (fn->> (string/join "=")))
+          (map #(string/join "=" %))
           (string/join ", ")
           not-empty
           (str " "))))

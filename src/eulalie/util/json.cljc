@@ -1,10 +1,10 @@
 (ns eulalie.util.json
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [eulalie.util :as util]
             [eulalie.util.json.mapping :as json.mapping]
             [camel-snake-kebab.core :as csk]
-            [eulalie.service-util :as service-util]
-            [cheshire.core :as cheshire]))
+            [eulalie.util.service :as util.service]
+            [eulalie.platform :as platform]))
 
 (defn body->error [{:keys [__type message Message]}]
   (when-let [t (some-> __type
@@ -15,14 +15,14 @@
 
 (defmethod eulalie/transform-response-error
   :eulalie.service.generic/json-response [resp]
-  (some-> resp :body (cheshire/decode true) body->error))
+  (some-> resp :body platform/decode-json body->error))
 
 (defn req-target [prefix {:keys [target]}]
-  (str prefix (service-util/->camel-s target)))
+  (str prefix (util.service/->camel-s target)))
 
 (defn prepare-json-request
   [{:keys [service-name target-prefix] :as service-defaults} req]
-  (let [req (service-util/default-request service-defaults req)]
+  (let [req (util.service/default-request service-defaults req)]
     (-> req
         (update-in [:headers] merge
                    {:content-type "application/x-amz-json-1.0"
@@ -36,9 +36,9 @@
   :eulalie.service.generic/json-response
   [{:keys [body] :as resp}]
   (map-response-keys
-   (assoc resp :body (cheshire/decode body true))))
+   (assoc resp :body (platform/decode-json body))))
 
 (defmethod eulalie/transform-request-body
   :eulalie.service.generic/json-request
   [req]
-  (cheshire/encode (map-request-keys req)))
+  (platform/encode-json (map-request-keys req)))

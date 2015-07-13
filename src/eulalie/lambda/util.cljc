@@ -1,7 +1,12 @@
 (ns eulalie.lambda.util
-  (:require [eulalie]
+  (:require [eulalie.core :as eulalie]
             [eulalie.lambda]
-            [eulalie.util :refer [go-catching <? <?!]]))
+            #?@(:clj
+                [[glossop.core :refer [go-catching <? <?!]]]
+                :cljs
+                [[cljs.core.async]]))
+  #?(:cljs
+     (:require-macros [glossop.macros :refer [go-catching <?]])))
 
 (defn thunk! [creds fn-name type & [params]]
   (go-catching
@@ -16,8 +21,12 @@
       (if error
         (ex-info (name (:type error)) error)
         body))))
-(def thunk!! (comp <?! thunk!))
+
 
 (defn invoke! [creds fn-name type payload & [params]]
   (thunk! creds fn-name type (assoc params :payload payload)))
-(def invoke!! (comp <?! invoke!))
+
+#?(:clj
+   (do
+     (def thunk!!  (comp <?! thunk!))
+     (def invoke!! (comp <?! invoke!))))
