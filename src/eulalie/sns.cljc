@@ -7,8 +7,9 @@
             [eulalie.util :as util]
             [eulalie.sign :as sign]
             [eulalie.util.xml :as x]
-            [eulalie.util.query :as q]
-            [cheshire.core :as json]))
+            [eulalie.platform :as platform]
+            [eulalie.platform.xml :as platform.xml]
+            [eulalie.util.query :as q]))
 
 (derive :eulalie.service/sns :eulalie.service.generic/xml-response)
 (derive :eulalie.service/sns :eulalie.service.generic/query-request)
@@ -64,7 +65,7 @@
               v  (prepare-message-value
                   (dispatch-map k k)
                   v)]
-          [k (cond-> v (map? v) json/encode)])))))
+          [k (cond-> v (map? v) platform/encode-json)])))))
 
 (defmethod prepare-body :publish [_ {:keys [message] :as body}]
   (cond-> body
@@ -72,7 +73,7 @@
     (assoc :message-structure :json
            :message (-> message
                         prepare-targeted-message
-                        json/encode))))
+                        platform/encode-json))))
 
 (defmulti  restructure-response (fn [target elem] target))
 (defmethod restructure-response :default [_ e] e)
@@ -163,6 +164,6 @@
 
 (defmethod eulalie/transform-response-body :eulalie.service/sns
   [{{:keys [target]} :request body :body}]
-  (let [elem (x/string->xml-map body)]
+  (let [elem (platform.xml/string->xml-map body)]
     (->> (x/extract-response-value target elem target->elem-spec)
          (restructure-response target))))

@@ -7,14 +7,17 @@
    [glossop.util]
    [eulalie.util :as util]
    [plumbing.core :refer [map-vals dissoc-in]]
-   [eulalie.test.common :refer [creds]]
+   [eulalie.test.common :as test.common :refer [creds]]
    #?@ (:clj
-        [[clojure.test :refer [deftest is]]
+        [[clojure.test :refer [is]]
          [glossop.core :refer [go-catching <?]]
-         [clojure.core.async :as async]]
+         [clojure.core.async :as async]
+         [eulalie.test.async :refer [deftest]]]
         :cljs
-        [[cljs.core.async :as async]]))
-  #? (:cljs (:require-macros [cemerick.cljs.test :refer [deftest is]]
+        [[cljs.core.async :as async]
+         [cemerick.cljs.test]]))
+  #? (:cljs (:require-macros [cemerick.cljs.test :refer [is]]
+                             [eulalie.test.async.macros :refer [deftest]]
                              [glossop.macros :refer [go-catching <?]])))
 
 (defn keys= [exp act ks]
@@ -72,17 +75,6 @@
     (is (sets= gsi-out (map tidy-index gsi-in )))
     (is (keys= req resp #{:key-schema :table-name :attribute-definitions}))))
 
-(defn issue-raw! [req]
-  (go-catching
-    (let [{:keys [error] :as resp} (<? (eulalie/issue-request! req))]
-      (if (not-empty error)
-        ;; ex-info doesn't print to anything useful in cljs
-        (throw #? (:clj
-                   (ex-info  (pr-str error) error)
-                   :cljs
-                   (js/Error (pr-str error))))
-        resp))))
-
 (defn issue! [target content & [req-overrides]]
   (go-catching
     (let [req (merge
@@ -92,7 +84,7 @@
                 :body content
                 :creds creds}
                req-overrides)]
-      (:body (<? (issue-raw! req))))))
+      (:body (<? (test.common/issue-raw! req))))))
 
 (deftest transform-body
   (is (= (str "{\"TableName\":\"" (name table) "\"}")

@@ -1,15 +1,12 @@
 (ns eulalie.sqs
   (:require [camel-snake-kebab.core :as csk]
-            [camel-snake-kebab.extras :as csk-extras]
             [cemerick.url :as url]
-            [cheshire.core :as json]
             [clojure.set :as set]
             [eulalie.core :as eulalie]
             [eulalie.util.service :as util.service]
-            [eulalie.sign :as sign]
-            [eulalie.util :as util]
             [eulalie.util.query :as q]
             [eulalie.util.xml   :as x]
+            [eulalie.platform.xml :as platform.xml]
             [plumbing.core :refer [map-vals]]))
 
 (derive :eulalie.service/sqs :eulalie.service.generic/xml-response)
@@ -174,10 +171,6 @@
    {:id :batch-id :message-id :id :md-5-of-message-attributes :attr-md5
     :md-5-of-message-body :body-md5}))
 
-(defn restructure-failed-sends [body]
-  (children-by-attr
-   (x/child body :batch-result-error-entry)))
-
 (defmethod restructure-response :send-message-batch [_ body]
   {:succeeded
    (restructure-successful-sends body)
@@ -215,6 +208,6 @@
 
 (defmethod eulalie/transform-response-body :eulalie.service/sqs
   [{{:keys [target]} :request body :body}]
-  (let [elem (x/string->xml-map body)]
+  (let [elem (platform.xml/string->xml-map body)]
     (->> (x/extract-response-value target elem target->elem-spec)
          (restructure-response target))))

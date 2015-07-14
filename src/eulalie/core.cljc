@@ -8,9 +8,13 @@
    #?@(:clj
        [[glossop.core :refer [<? <?! go-catching]]]
        :cljs
-       [[cljs.core.async]]))
+       [[cljs.core.async]
+        [cljs.nodejs :as nodejs]]))
   #?(:cljs
      (:require-macros [glossop.macros :refer [go-catching <?]])))
+
+
+#? (:cljs (def source-map-support (nodejs/require "source-map-support")))
 
 (defn req->service-dispatch [{:keys [service]}]
   (keyword "eulalie.service" (name service)))

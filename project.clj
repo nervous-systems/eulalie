@@ -32,10 +32,11 @@
                       [crc                "3.3.0"]
                       [regexp-quote       "0.0.0"]
                       [portfinder         "0.4.0"]
-                      [timekeeper         "0.0.5"]]
+                      [timekeeper         "0.0.5"]
+                      [xml2js             "0.4.9"]]
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]
-            [com.cemerick/clojurescript.test "0.3.4"]]
+            [com.cemerick/clojurescript.test "0.3.3"]]
   :cljsbuild
   {:builds [{:id "main"
              :source-paths ["src"]
@@ -61,5 +62,5 @@
               :dependencies
               [[com.cemerick/piggieback "0.2.1"]
                [org.clojure/tools.nrepl "0.2.10"]
-               [com.cemerick/clojurescript.test "0.3.4"]]
+               [com.cemerick/clojurescript.test "0.3.3"]]
               :source-paths ["src" "test"]}})

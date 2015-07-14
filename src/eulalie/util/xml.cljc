@@ -2,19 +2,8 @@
   (:require [eulalie.core :as eulalie]
             [camel-snake-kebab.core :as csk]
             [clojure.string :as str]
-            [clojure.walk :as walk]
-            [clojure.xml :as xml]
-            [eulalie.util :as util]))
-
-(defn xml-map [mess]
-  ;; I don't really know what people do.  We don't care about attributes.
-  (walk/postwalk
-   (fn [x]
-     (if (and (map? x) (:tag x))
-       (let [{:keys [tag content]} x]
-         {(csk/->kebab-case-keyword tag) content})
-       x))
-   mess))
+            [eulalie.util :as util]
+            [eulalie.platform.xml :as platform.xml]))
 
 (defn node-seq [x-map]
   (tree-seq map? #(apply concat (vals %)) x-map))
@@ -42,16 +31,8 @@
       [(csk/->kebab-case-keyword (child-content entry :key))
        (child-content entry :value)])))
 
-(defn string->xml-map [^String resp]
-  (some->
-   resp
-   (.getBytes "UTF-8")
-   java.io.ByteArrayInputStream.
-   xml/parse
-   xml-map))
-
 (defn parse-xml-error [body]
-  (if-let [m (string->xml-map body)]
+  (if-let [m (platform.xml/string->xml-map body)]
     (if (contains? m :internal-failure)
       {:type :internal-failure}
       {:type (-> m

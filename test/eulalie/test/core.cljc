@@ -9,12 +9,12 @@
    #?@ (:clj
         [[clj-time.core :as time]
          [clojure.core.async :as async]
-         [clojure.test :refer [deftest is]]
+         [clojure.test :refer [is]]
+         [eulalie.test.async :refer [deftest]]
          [glossop.core :refer [go-catching <?]]]
         :cljs
         [[cljs-time.core :as time]
          [cemerick.cljs.test]
-         [glossop.core]
          [cljs.core.async :as async]]))
   #? (:cljs
       (:require-macros [glossop.macros :refer [<? go-catching]]

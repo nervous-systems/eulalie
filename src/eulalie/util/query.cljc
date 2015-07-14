@@ -10,17 +10,17 @@
             [clojure.string :as str]
             [clojure.walk :as walk]
             [eulalie.util :as util]
-            [cheshire.core :as json]
+            [eulalie.platform :as platform]
             [plumbing.core :refer [map-keys]]))
 
 (defn nested-json-out [m]
   (->> m
        (csk-extras/transform-keys csk/->camelCaseString)
-       json/encode))
+       platform/encode-json))
 
 (defn nested-json-in [s]
   (csk-extras/transform-keys
-   csk/->kebab-case-keyword (json/decode s true)))
+   csk/->kebab-case-keyword (platform/decode-json s)))
 
 (defn policy-key-out [k]
   (cond (and (keyword? k) (namespace k))
@@ -56,10 +56,12 @@
   (->> policy
        (transform-policy-statement policy-key-out)
        (csk-extras/transform-keys policy-key-out)
-       json/encode))
+       platform/encode-json))
 
 (defn policy-json-in [s]
-  (->> (json/decode s policy-key-in)
+  (->> s
+       platform/decode-json
+       (csk-extras/transform-keys policy-key-out)
        (transform-policy-statement policy-key-in)))
 
 (defn enum-keys->matcher [keys-or-fns]
