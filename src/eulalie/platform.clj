@@ -50,6 +50,9 @@
     (http/request m #(close-with! ch %) )
     ch))
 
+(defn http-get! [url]
+  (channel-request! {:url url}))
+
 (defn channel-aws-request! [m]
   (channel-request! (req->http-kit m)))
 

@@ -24,19 +24,20 @@
    [clj-time                    "0.9.0"]
    [base64-clj                  "0.1.1"]
 
-   [ch.qos.logback/logback-classic "1.1.2"]
-
    [com.andrewmcveigh/cljs-time "0.3.10"]]
   :exclusions [[org.clojure/clojure]]
+
   :node-dependencies [[source-map-support "0.2.8"]
                       [crc                "3.3.0"]
                       [regexp-quote       "0.0.0"]
                       [portfinder         "0.4.0"]
                       [timekeeper         "0.0.5"]
                       [xml2js             "0.4.9"]]
+
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]
             [com.cemerick/clojurescript.test "0.3.3"]]
+
   :cljsbuild
   {:builds [{:id "main"
              :source-paths ["src"]
@@ -54,7 +55,8 @@
                         :hashbang false
                         :source-map true
                         :optimizations :none}}]
-   :test-commands {"node" ["node" :node-runner "target/js-test/test.js"]}}
+   :test-commands {"node" ["node" "runner-none.js" "target/js-test"
+                           "target/js-test/test.js"]}}
   :profiles {:dev
              {:repl-options
               {:nrepl-middleware

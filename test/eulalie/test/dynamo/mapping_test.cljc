@@ -5,7 +5,7 @@
             [eulalie.util]
             [clojure.data :as data]
             #? (:clj
-                [clojure.test :refer [defest is]]))
+                [clojure.test :refer [deftest is]]))
   #? (:cljs (:require-macros [cemerick.cljs.test :refer [deftest is]])))
 
 (deftest request-transform-all

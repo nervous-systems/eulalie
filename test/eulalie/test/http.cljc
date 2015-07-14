@@ -11,7 +11,6 @@
        [[cljs.core.async :as async :refer [>!]]]))
   #?(:cljs (:require-macros [glossop.macros :refer [go-catching <?]])))
 
-
 (defn with-local-server [resps bodyf]
   (go-catching
     (let [reqs  (async/chan (count resps))

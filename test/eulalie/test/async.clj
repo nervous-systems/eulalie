@@ -3,4 +3,5 @@
             [glossop.core :refer [<?!]]))
 
 (defmacro deftest [t-name & forms]
-  `(test/deftest ~t-name (<?! (do ~@forms))))
+  `(test/deftest ~t-name
+     (<?! (do ~@forms))))

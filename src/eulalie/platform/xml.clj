@@ -1,7 +1,8 @@
 (ns eulalie.platform.xml
   (:require [clojure.string :as str]
             [clojure.walk :as walk]
-            [clojure.xml :as xml]))
+            [clojure.xml :as xml]
+            [camel-snake-kebab.core :as csk]))
 
 (defn xml-map [mess]
   ;; I don't really know what people do.  We don't care about attributes.

@@ -57,7 +57,7 @@
 (deftest ^:integration vague-error
   (with-local-server [{:status 400}]
     (fn [{:keys [url reqs]}]
-      (go-catching (loop [] (<? reqs) (recur)))
+      (go-catching (loop [] (when (<? reqs) (recur))))
       (go-catching
         (is (= :unrecognized
                (->
@@ -80,17 +80,17 @@
             (is (= "hi from retry-ok!" body))
             (is (= 1 retries))))))))
 
-(defn response [status & [{:keys [body headers] :or {body ""}}]]
+(defn response [& [{:keys [status body headers] :or {body "" status 200}}]]
   {:status status
    :headers (walk/stringify-keys
              (merge {:content-type "text/plain"} headers))
    :body body})
 
-(defn skewed-response [time]
-  (response
-   400
-   {:headers {:date (platform.time/time->rfc822 time)
-              :x-amzn-errortype "RequestTimeTooSkewed:"}}))
+(def skewed-response
+  #(response
+    {:status 400
+     :headers {:date (platform.time/time->rfc822 %)
+               :x-amzn-errortype "RequestTimeTooSkewed:"}}))
 
 (deftest ^:integration skew-no-retry
   (go-catching
@@ -117,7 +117,7 @@
           token       (str "skew-retry-" client-time)
           {reqs :reqs {:keys [body time-offset]} :result}
           (<? (with-local-server [(skewed-response server-time)
-                                  (response 200 {:body token})]
+                                  (response {:status 200 :body token})]
                 (fn [{:keys [url]}]
                   (with-canned-time client-time
                     eulalie/issue-request!

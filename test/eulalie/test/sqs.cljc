@@ -26,22 +26,6 @@
           (is (:maximum-message-size attrs))
           (is (:last-modified-timestamp attrs)))))))
 
-(deftest ^:integration ^:aws set-queue-attributes+json
-  (sqs.util/with-transient-queue!
-    (fn [{q :url}]
-      (sqs.util/with-transient-queue!
-        (fn [{redrive-q :url}]
-          (go-catching
-            (let [{:keys [queue-arn]}
-                  (<? (sqs! :get-queue-attributes {:queue-url redrive-q :attrs :all}))
-                  r-policy {:max-receive-count 1
-                            :dead-letter-target-arn queue-arn}]
-              (<? (sqs! :set-queue-attributes
-                        {:queue-url q :name :redrive-policy :value r-policy}))
-              (let [{:keys [redrive-policy]}
-                    (<? (sqs! :get-queue-attributes {:queue-url q :attrs :all}))]
-                (is (= r-policy redrive-policy))))))))))
-
 (deftest ^:integration ^:aws send-message
   (sqs.util/with-transient-queue!
     (fn [{q-url :url}]

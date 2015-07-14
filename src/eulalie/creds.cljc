@@ -1,6 +1,7 @@
 (ns eulalie.creds
   (:require [eulalie.util :as util]
             [eulalie.instance-data :as instance-data]
+            [eulalie.platform.time :as platform.time]
             #?@(:clj
                 [[glossop.core :refer [<? go-catching]]
                  [clojure.core.async :as async :refer [>! <!]]]
@@ -30,14 +31,14 @@
   closing.  Closing the output channel will terminate early."
   [{:keys [expiration] :as initial-creds} retrieval-fn & [{:keys [out-chan]}]]
   (let [out-chan (or out-chan (async/chan))
-        now      (util/msecs-now)
+        now      (platform.time/msecs-now)
         loop-chan
         (go-catching
           (when expiration
             (<! (creds-timeout-chan expiration now)))
           (loop []
             (let [{:keys [expiration] :as creds} (<? (retrieval-fn))
-                  now (util/msecs-now)]
+                  now (platform.time/msecs-now)]
               (if (< expiration now)
                 (throw (ex-info "expired-credentials"
                                 {:type :expired-credentials :now now :creds creds}))

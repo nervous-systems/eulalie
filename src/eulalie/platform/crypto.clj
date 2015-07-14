@@ -11,7 +11,7 @@
 (defn hmac-sha256 [bytes k]
   (.doFinal
    (doto (Mac/getInstance HMAC-SHA256)
-     (.init (SecretKeySpec. key HMAC-SHA256)))
+     (.init (SecretKeySpec. k HMAC-SHA256)))
    bytes))
 
 (defn bytes->hex-str [bytes]

@@ -4,8 +4,8 @@
    [cemerick.url :refer [url]]
    [eulalie.core :as eulalie]
    [eulalie.dynamo]
-   [glossop.util]
    [eulalie.util :as util]
+   [glossop.util]
    [plumbing.core :refer [map-vals dissoc-in]]
    [eulalie.test.common :as test.common :refer [creds]]
    #?@ (:clj
@@ -14,7 +14,8 @@
          [clojure.core.async :as async]
          [eulalie.test.async :refer [deftest]]]
         :cljs
-        [[cljs.core.async :as async]
+        [[glossop.core]
+         [cljs.core.async :as async]
          [cemerick.cljs.test]]))
   #? (:cljs (:require-macros [cemerick.cljs.test :refer [is]]
                              [eulalie.test.async.macros :refer [deftest]]
@@ -71,9 +72,9 @@
   (let [[lsi-out lsi-in] (map :local-secondary-indexes  [req resp])
         [gsi-out gsi-in] (map :global-secondary-indexes [req resp])
         [req resp] (map #(update-in % [:attribute-definitions] set) [req resp])]
-    (is (sets= lsi-out (map tidy-index lsi-in)))
-    (is (sets= gsi-out (map tidy-index gsi-in )))
-    (is (keys= req resp #{:key-schema :table-name :attribute-definitions}))))
+    (and (sets= lsi-out (map tidy-index lsi-in))
+         (sets= gsi-out (map tidy-index gsi-in ))
+         (keys= req resp #{:key-schema :table-name :attribute-definitions}))))
 
 (defn issue! [target content & [req-overrides]]
   (go-catching
@@ -85,28 +86,6 @@
                 :creds creds}
                req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
-
-(deftest transform-body
-  (is (= (str "{\"TableName\":\"" (name table) "\"}")
-         (eulalie/transform-request-body
-          {:service :dynamo :body {:table-name table}}))))
-
-(deftest transform-response-body
-  (is (= {:table-name table}
-         (eulalie/transform-response-body
-          {:request {:service :dynamo}
-           :body (str "{\"TableName\":\"" (name table) "\"}")}))))
-
-(deftest transform-body-unicode
-  (is (= "{\"TableName\":\"\u00a5123Hello\"}"
-         (eulalie/transform-request-body
-          {:service :dynamo :body {:table-name "\u00a5123Hello"}}))))
-
-(deftest transform-response-body-unicode
-  (is (= {:table-name (keyword "\u00a5123Hello")}
-         (eulalie/transform-response-body
-          {:request {:service :dynamo}
-           :body "{\"TableName\":\"\u00a5123Hello\"}"}))))
 
 (deftest ^:integration ^:aws describe-table
   (go-catching
@@ -135,6 +114,7 @@
           (into {}
             (for [{:keys [table-name key-schema]} (keys create->items)]
               [table-name (->> key-schema (map :attribute-name) (into #{}))]))]
+      (println "ROFL")
       (try
         (<? (f))
         (finally
@@ -198,27 +178,11 @@
   (go-catching
     (is (some keyword? (:table-names (<? (issue! :list-tables {})))))))
 
-(deftest ^:integration ^:aws delete-item
-  (go-catching
-    (let [result
-          (<? (with-items! {create-table-req
-                            [{:name {:S "Moe"}
-                              :age  {:N "30"}
-                              :job  {:S "Programmer"}}]}
-                #(issue!
-                  :delete-item
-                  {:table-name table
-                   :key        item-attrs
-                   :expected   {:job
-                                {:attribute-value-list [{:S "er"}]
-                                 :comparison-operator :contains}}})))]
-      (is (empty? result)))))
-
 (deftest ^:integration ^:aws retry-skew
   (go-catching
     (let [item (assoc item-attrs :test-name {:S "retry-skew"})
           {:keys [retries error]}
-          (<? (issue-raw!
+          (<? (test.common/issue-raw!
                {:service :dynamo
                 :target :put-item
                 :creds creds
