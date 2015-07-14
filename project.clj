@@ -27,12 +27,12 @@
    [com.andrewmcveigh/cljs-time "0.3.10"]]
   :exclusions [[org.clojure/clojure]]
 
-  :node-dependencies [[source-map-support "0.2.8"]
-                      [crc                "3.3.0"]
-                      [regexp-quote       "0.0.0"]
-                      [portfinder         "0.4.0"]
-                      [timekeeper         "0.0.5"]
-                      [xml2js             "0.4.9"]]
+  :node-dependencies [[source-map-support "0.2.8"]   ;; optional
+                      [crc                "3.3.0"]   ;; response verification, opt.
+                      [regexp-quote       "0.0.0"]   ;; signing
+                      [portfinder         "0.4.0"]   ;; test
+                      [timekeeper         "0.0.5"]   ;; test
+                      [xml2js             "0.4.9"]]  ;; sns/sqs
 
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]
@@ -43,15 +43,14 @@
              :source-paths ["src"]
              :compiler {:output-to "eulalie.js"
                         :target :nodejs
-                        :cache-analysis true
                         :hashbang false
-                        :optimizations :none}}
+                        :optimizations :none
+                        :source-map true}}
             {:id "test"
              :source-paths ["src" "test"]
              :compiler {:output-to "target/js-test/test.js"
                         :output-dir "target/js-test"
                         :target :nodejs
-                        :cache-analysis true
                         :hashbang false
                         :source-map true
                         :optimizations :none}}]

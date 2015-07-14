@@ -13,7 +13,10 @@
   #?(:cljs
      (:require-macros [glossop.macros :refer [go-catching <?]])))
 
-#? (:cljs (.install (nodejs/require "source-map-support")))
+#? (:cljs
+    (try
+      (.install (nodejs/require "source-map-support"))
+      (catch js/Error _)))
 
 (defn req->service-dispatch [{:keys [service]}]
   (keyword "eulalie.service" (name service)))

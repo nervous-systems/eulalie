@@ -11,7 +11,11 @@
 
 (def http  (nodejs/require "http"))
 (def https (nodejs/require "https"))
-(def crc   (nodejs/require "crc"))
+(def crc   (try
+             (nodejs/require "crc")
+             (catch js/Error e
+               (println "Unable to load 'crc' module - proceeding anyway")
+               nil)))
 
 (defn req->node [{{:keys [query host port path]} :endpoint :keys [headers method] :as req}]
   (cond->
@@ -82,7 +86,8 @@
 
 (defn response-checksum-ok? [{:keys [headers body]}]
   (let [input-crc (some-> headers :x-amz-crc32 js/Number)]
-    (or (not input-crc)
+    (or (not crc)
+        (not input-crc)
         (= (:content-encoding headers) "gzip")
         (= (.crc32 crc (get-utf8-bytes body))))))
 

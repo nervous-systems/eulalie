@@ -1,18 +1,16 @@
 (ns eulalie.util.sign
   (:require #? (:cljs [cljs.nodejs :as nodejs])
             [eulalie.util :as util]
-            [clojure.string :as string])
+            [clojure.string :as str])
   #?(:clj
      (:import [java.util.regex Pattern])))
-
-#?(:cljs (nodejs/require "regexp-quote"))
 
 (defn quote-region-regex [service-hint]
   (str "^(?:.+\\.)?"
        #?(:clj
           (Pattern/quote service-hint)
           :cljs
-          (.quote js/RegExp service-hint))
+          (str/replace service-hint #"[-\\^$*+?.()|\[\]{}]" "\\$&"))
        "[.-]([a-z0-9-]+)\\."))
 
 (defn host->region [service-hint host]
@@ -22,18 +20,18 @@
           (re-find host)
           last))
 
-(def trim #(some-> % string/trim))
+(def trim #(some-> % str/trim))
 
 (defn sanitize-creds [m]
   (into {}
     (for [[k v] m]
-      [k (cond-> v (string? v) string/trim)])))
+      [k (cond-> v (string? v) str/trim)])))
 
 (defn slash-join [& rest]
-  (string/join "/" rest))
+  (str/join "/" rest))
 
 (defn newline-join [& rest]
-  (string/join "\n" rest))
+  (str/join "\n" rest))
 
 (defn add-header [r k v]
   (assoc-in r [:headers k] v))
@@ -72,10 +70,10 @@
   (parse-region-name service-name host))
 
 (def collapse-whitespace
-  #(some-> % str (string/replace #"\s+" " ")))
+  #(some-> % str (str/replace #"\s+" " ")))
 
 (def strip-down-header
-  #(some-> % string/lower-case collapse-whitespace))
+  #(some-> % str/lower-case collapse-whitespace))
 
 (defn canonical-header [[k v]]
   [(strip-down-header
@@ -90,13 +88,13 @@
                (into (sorted-map)))]
     [(keys m)
      (->> m
-          (map #(string/join ":" %))
+          (map #(str/join ":" %))
           (apply newline-join))]))
 
 (defn make-header-value [v params]
   (str v (some->>
           params
-          (map #(string/join "=" %))
-          (string/join ", ")
+          (map #(str/join "=" %))
+          (str/join ", ")
           not-empty
           (str " "))))
