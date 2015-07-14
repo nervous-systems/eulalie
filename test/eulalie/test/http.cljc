@@ -17,11 +17,11 @@
     (let [reqs  (async/chan (count resps))
           resps (cond-> resps (coll? resps) async/to-chan)
           {:keys [port stop!]}
-          (<? ((start-local-server!
-                (fn [req]
-                  (go-catching
-                    (>! reqs (walk/keywordize-keys req))
-                    (<? resps))))))]
+          (<? (start-local-server!
+               (fn [req]
+                 (go-catching
+                   (>! reqs (walk/keywordize-keys req))
+                   (<? resps)))))]
       (try
         (let [result (<? (bodyf {:port port
                                  :url  (url (str "http://localhost:" port))
