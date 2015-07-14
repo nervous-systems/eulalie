@@ -29,7 +29,6 @@
 
   :node-dependencies [[source-map-support "0.2.8"]   ;; optional
                       [crc                "3.3.0"]   ;; response verification, opt.
-                      [regexp-quote       "0.0.0"]   ;; signing
                       [portfinder         "0.4.0"]   ;; test
                       [timekeeper         "0.0.5"]   ;; test
                       [xml2js             "0.4.9"]]  ;; sns/sqs
