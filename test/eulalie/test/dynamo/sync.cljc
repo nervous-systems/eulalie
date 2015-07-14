@@ -1,5 +1,6 @@
 (ns eulalie.test.dynamo.sync
   (:require [eulalie.core :as eulalie]
+            [eulalie.dynamo]
             #? (:clj
                 [clojure.test :refer [deftest is]]))
   #? (:cljs (:require-macros [cemerick.cljs.test :refer [deftest is]])))
