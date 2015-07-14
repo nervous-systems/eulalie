@@ -114,7 +114,6 @@
           (into {}
             (for [{:keys [table-name key-schema]} (keys create->items)]
               [table-name (->> key-schema (map :attribute-name) (into #{}))]))]
-      (println "ROFL")
       (try
         (<? (f))
         (finally

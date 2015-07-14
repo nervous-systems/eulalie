@@ -11,6 +11,7 @@
 
 (def http  (nodejs/require "http"))
 (def https (nodejs/require "https"))
+(def crc   (nodejs/require "crc"))
 
 (defn req->node [{{:keys [query host port path]} :endpoint :keys [headers method] :as req}]
   (cond->
@@ -74,14 +75,22 @@
        :message (aget error "message")
        :transport true})))
 
-(def byte-count #(.byteLength js/Buffer %))
-(def response-checksum-ok? identity)
+(def byte-count #(.byteLength js/Buffer % "utf8"))
+
+(defn get-utf8-bytes [s]
+  (js/Buffer. s "utf8"))
+
+(defn response-checksum-ok? [{:keys [headers body]}]
+  (let [input-crc (some-> headers :x-amz-crc32 js/Number)]
+    (or (not input-crc)
+        (= (:content-encoding headers) "gzip")
+        (= (.crc32 crc (get-utf8-bytes body))))))
 
 (defn encode-json [x]
   (.stringify js/JSON (clj->js x)))
 
-(def encode-base64 identity)
-(def decode-base64 identity)
+(defn encode-base64 [x]
+  (.toString (js/Buffer. x "utf8") "base64"))
 
-(defn get-utf8-bytes [s]
-  (js/Buffer. s "utf8"))
+(defn decode-base64 [x]
+  (.toString (js/Buffer. x "base64") "utf8"))
