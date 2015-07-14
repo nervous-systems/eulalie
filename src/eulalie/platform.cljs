@@ -13,8 +13,7 @@
 (def https (nodejs/require "https"))
 (def crc   (try
              (nodejs/require "crc")
-             (catch js/Error e
-               (println "Unable to load 'crc' module - proceeding anyway")
+             (catch js/Error _
                nil)))
 
 (defn req->node [{{:keys [query host port path]} :endpoint :keys [headers method] :as req}]
