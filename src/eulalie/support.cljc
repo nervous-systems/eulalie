@@ -3,7 +3,7 @@
             [plumbing.map]
             [eulalie.core :as eulalie]
             #? (:clj
-                [glossop.core]
+                [glossop.core :refer [<? go-catching]]
                 :cljs
                 [cljs.core.async]))
   #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]])))
@@ -32,11 +32,10 @@
             fname!! (-> target-name name (str "!!") symbol)
             args'   (into '[creds] (conj args '& '[extra]))
             body  `(eulalie.support/issue-request!
-                    (merge {:service ~service
-                            :target ~(keyword target-name)
-                            :creds ~'creds}
-                           (plumbing.map/keyword-map ~@args)
-                           ~'extra)
+                    {:service ~service
+                     :target  ~(keyword target-name)
+                     :creds   ~'creds
+                     :body    (merge (plumbing.map/keyword-map ~@args) ~'extra)}
                     ~req-fn ~resp-fn)
             md     (cond-> (meta target-name)
                      doc (assoc :doc doc))]
