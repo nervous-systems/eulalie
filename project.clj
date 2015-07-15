@@ -27,11 +27,9 @@
    [com.andrewmcveigh/cljs-time "0.3.10"]]
   :exclusions [[org.clojure/clojure]]
 
-  :node-dependencies [[source-map-support "0.2.8"]   ;; optional
-                      [crc                "3.3.0"]   ;; response verification, opt.
-                      [portfinder         "0.4.0"]   ;; test
-                      [timekeeper         "0.0.5"]   ;; test
-                      [xml2js             "0.4.9"]]  ;; sns/sqs
+  :node-dependencies [[source-map-support "0.2.8"] ;; optional
+                      [crc                "3.3.0"] ;; response verification, opt.
+                      [xml2js             "0.4.9"]] ;; sns/sqs
 
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]
@@ -59,6 +57,9 @@
              {:repl-options
               {:nrepl-middleware
                [cemerick.piggieback/wrap-cljs-repl]}
+              :node-dependencies
+              [[portfinder         "0.4.0"]
+               [timekeeper         "0.0.5"]]
               :dependencies
               [[com.cemerick/piggieback "0.2.1"]
                [org.clojure/tools.nrepl "0.2.10"]

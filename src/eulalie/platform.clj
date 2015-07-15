@@ -1,14 +1,15 @@
 (ns eulalie.platform
-  (:require [glossop.util :refer [close-with!]]
+  (:require [base64-clj.core :as base64]
             [camel-snake-kebab.core :as csk]
+            [cheshire.core :as json]
+            [clojure.core.async :as async]
+            [clojure.set :as set]
             [clojure.walk :as walk]
             [eulalie.util :as util]
-            [org.httpkit.client :as http]
-            [clojure.core.async :as async]
-            [cheshire.core :as json]
-            [base64-clj.core :as base64])
-  (:import [java.util.zip CRC32]
-           [java.nio.charset Charset]))
+            [glossop.util :refer [close-with!]]
+            [org.httpkit.client :as http])
+  (:import [java.nio.charset Charset]
+           [java.util.zip CRC32]))
 
 (let [utf-8 (Charset/forName "UTF-8")]
   (defn get-utf8-bytes ^bytes [^String s]
@@ -39,11 +40,11 @@
      :exception e
      :transport true}))
 
-(def req->http-kit
-  (util/map-rewriter
-   [:endpoint :url
-    :url      str
-    :headers  walk/stringify-keys]))
+(defn req->http-kit [{:keys [endpoint headers] :as m}]
+  (-> m
+      (dissoc :endpoint)
+      (assoc :url (str endpoint)
+             :headers (walk/stringify-keys headers))))
 
 (defn channel-request! [m]
   (let [ch (async/chan)]
