@@ -58,3 +58,10 @@
            (reset! creds-atom current-creds)
            (recur))))
      creds)))
+
+(defn env! []
+  (let [token (util/env! "AWS_SESSION_TOKEN")]
+    (cond->
+        {:access-key (util/env! "AWS_ACCESS_KEY_ID")
+         :secret-key (util/env! "AWS_SECRET_ACCESS_KEY")}
+      token (assoc :token token))))

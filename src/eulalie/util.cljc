@@ -12,3 +12,9 @@
 
 (defn to-last-match [^String hay ^String needle]
   (or (some->> (.lastIndexOf hay needle) not-neg (subs hay 0)) hay))
+
+(defn env! [s & [default]]
+  #? (:clj
+      (get (System/getenv) s default)
+      :cljs
+      (or (aget js/process "env" s) default)))
