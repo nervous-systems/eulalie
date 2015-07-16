@@ -63,7 +63,8 @@
         {:error e}))))
 
 (defn http-get! [url]
-  (channel-request! {:method :get :endpoint url}))
+  (channel-request! {:method :get
+                     :endpoint (cond-> url (string? url) url/url)}))
 
 (defn channel-aws-request! [req]
   (channel-request! req))

@@ -52,7 +52,7 @@
     ch))
 
 (defn http-get! [url]
-  (channel-request! {:url url}))
+  (channel-request! {:url (str url)}))
 
 (defn channel-aws-request! [m]
   (channel-request! (req->http-kit m)))
