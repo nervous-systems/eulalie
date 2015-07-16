@@ -26,7 +26,11 @@
 (defn invoke! [creds fn-name type payload & [params]]
   (thunk! creds fn-name type (assoc params :payload payload)))
 
+(defn request! [creds fn-name & [payload]]
+  (invoke! creds fn-name :request-response payload))
+
 #?(:clj
    (do
-     (def thunk!!  (comp <?! thunk!))
-     (def invoke!! (comp <?! invoke!))))
+     (def thunk!!   (comp <?! thunk!))
+     (def invoke!!  (comp <?! invoke!))
+     (def request!! (comp <?! request!))))
