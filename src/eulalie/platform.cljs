@@ -5,6 +5,7 @@
             [clojure.string :as str]
             [clojure.walk :as walk]
             [eulalie.platform.util :refer [channel-fn]]
+            [eulalie.util.service :refer [concretize-port]]
             [glossop.core :as glossop]
             [glossop.util :refer [close-with!]])
   (:require-macros [glossop.macros :refer [go-catching <?]]))
@@ -24,11 +25,11 @@
        :headers headers}
     port (assoc :port port)))
 
-(defn request! [{body :body {:keys [protocol]} :endpoint :as req} & [{:keys [chan]}]]
+(defn request! [{body :body {:keys [protocol] :as u} :endpoint :as req} & [{:keys [chan]}]]
   (let [ch       (or chan (async/chan 10))
         node-req (.request
                   (case protocol "http" http "https" https)
-                  (clj->js (req->node req)))]
+                  (-> req (assoc :endpoint (concretize-port u)) req->node clj->js))]
     (.on node-req "response"
          (fn [resp]
            (if (glossop/error? resp)

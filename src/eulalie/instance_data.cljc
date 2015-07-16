@@ -27,7 +27,7 @@
      :or {host "169.254.169.254"
           parse-json false}}]]
   (let [path (cond-> path (not (coll? path)) vector)
-        url  (str "http://" host "/"
+        url  (str "http://" host ":80/"
                   (str/join "/"
                             (map name path)))]
     (go-catching
