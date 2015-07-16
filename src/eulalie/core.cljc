@@ -5,13 +5,13 @@
    [eulalie.util.service :as util.service]
    [eulalie.util :as util]
    [eulalie.platform :as platform]
-   #?@(:clj
-       [[glossop.core :refer [<? <?! go-catching]]]
-       :cljs
-       [[cljs.core.async]
-        [cljs.nodejs :as nodejs]]))
-  #?(:cljs
-     (:require-macros [glossop.macros :refer [go-catching <?]])))
+   #?@ (:clj
+        [[glossop.core :refer [<? <?! go-catching]]]
+        :cljs
+        [[cljs.core.async]
+         [cljs.nodejs :as nodejs]]))
+  #? (:cljs
+      (:require-macros [glossop.macros :refer [go-catching <?]])))
 
 #? (:cljs
     (try
