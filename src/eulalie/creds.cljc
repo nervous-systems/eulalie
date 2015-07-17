@@ -59,7 +59,7 @@
            (recur))))
      creds)))
 
-(defn env! []
+(defn env []
   (let [token (util/env! "AWS_SESSION_TOKEN")]
     (cond->
         {:access-key (util/env! "AWS_ACCESS_KEY_ID")
