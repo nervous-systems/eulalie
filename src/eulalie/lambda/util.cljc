@@ -8,19 +8,25 @@
   #?(:cljs
      (:require-macros [glossop.macros :refer [go-catching <?]])))
 
-(defn thunk! [creds fn-name type & [params]]
+(defn issue! [creds target body]
   (go-catching
     (let [{:keys [body error]}
           (<? (eulalie/issue-request!
                {:service :lambda
                 :creds creds
-                :target :invoke
-                :body (assoc params
-                             :function-name fn-name
-                             :invocation-type type)}))]
+                :target target
+                :body body}))]
       (if error
         (ex-info (name (:type error)) error)
         body))))
+
+(defn thunk! [creds fn-name type & [params]]
+  (issue!
+   creds
+   :invoke
+   (assoc params
+          :function-name fn-name
+          :invocation-type type)))
 
 
 (defn invoke! [creds fn-name type payload & [params]]
@@ -29,8 +35,12 @@
 (defn request! [creds fn-name & [payload]]
   (invoke! creds fn-name :request-response payload))
 
+(defn get-function! [creds fn-name]
+  (issue! creds :get-function {:function-name fn-name}))
+
 #?(:clj
    (do
      (def thunk!!   (comp <?! thunk!))
      (def invoke!!  (comp <?! invoke!))
-     (def request!! (comp <?! request!))))
+     (def request!! (comp <?! request!))
+     (def get-function!! (comp <?! get-function!))))
