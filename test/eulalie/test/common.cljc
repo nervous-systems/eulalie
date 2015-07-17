@@ -1,6 +1,6 @@
 (ns eulalie.test.common
   (:require [eulalie.core :as eulalie]
-            [eulalie.util :import [env!]]
+            [eulalie.util :refer [env!]]
             #? (:clj
                 [glossop.core :refer [<? go-catching]]))
   #? (:cljs
