@@ -15,7 +15,7 @@
 
 (defn error->throwable [service {:keys [type message] :as error}]
   (let [type (translate-error-type service type)]
-    (ex-info (name type) (assoc error :type type))))
+    (ex-info (str (name type) ": " message) (assoc error :type type))))
 
 (defn issue-request! [{:keys [body target service] :as req} req-fn resp-fn]
   (go-catching
