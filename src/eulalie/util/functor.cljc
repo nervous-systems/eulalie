@@ -3,7 +3,8 @@
 
 (defn fmap [f x]
   (cond
-    (map?  x) (into {}  (for [[k v] x] [k (f v)]))
-    (coll? x) (into (empty x) (map f x))
+    (map?  x) (into (empty x) (for [[k v] x] [k (f v)]))
+    (set?  x) (into (empty x) (map f x))
+    (coll? x) (mapv f x)
     (nil?  x) x
     :else     (f x)))
