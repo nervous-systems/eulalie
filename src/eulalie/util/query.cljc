@@ -39,18 +39,22 @@
         (apply keyword (map csk/->kebab-case-string segments)))
       :else (csk/->kebab-case-keyword k))))
 
+(defn transform-policy-clause [xform-value {:keys [action effect principal] :as clause}]
+  (cond->
+      clause
+    principal (assoc
+               :principal
+               (if (map? principal)
+                 (map-keys name principal)
+                 (name principal)))
+    action    (assoc :action (fmap xform-value action))
+    effect    (assoc :effect (xform-value effect))))
+
 (defn transform-policy-statement [xform-value {:keys [statement] :as p}]
   (assoc
    p :statement
-   (for [{:keys [principal] :as clause} statement]
-     (-> clause
-         ;; Stringify, so we don't later rename
-         (assoc :principal
-                (if (map? principal)
-                  (map-keys name principal)
-                  (name principal)))
-         (update-in [:action] (partial fmap xform-value))
-         (update-in [:effect] xform-value)))))
+   (for [clause statement]
+     (transform-policy-clause xform-value clause))))
 
 (defn policy-json-out [policy]
   (->> policy
@@ -61,7 +65,7 @@
 (defn policy-json-in [s]
   (->> s
        platform/decode-json
-       (csk-extras/transform-keys policy-key-out)
+       (csk-extras/transform-keys policy-key-in)
        (transform-policy-statement policy-key-in)))
 
 (defn enum-keys->matcher [keys-or-fns]

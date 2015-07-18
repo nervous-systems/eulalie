@@ -2,9 +2,11 @@
   (:require [camel-snake-kebab.core :as csk]
             [camel-snake-kebab.extras :as csk-extras]
             [cemerick.url :as url]
-            [eulalie.platform :as platform]
             [clojure.string :as str]
+            [clojure.walk :as walk]
             [eulalie.core :as eulalie]
+            [eulalie.platform :as platform]
+            [eulalie.util.query :as util.query]
             [eulalie.util.service :as util.service]))
 
 ;; (def target-methods {:remove-permission :delete})
@@ -46,42 +48,59 @@
     log-type        (assoc "X-Amz-Log-Type"
                            (csk/->PascalCaseString log-type))))
 
+(def fn-url [service-version "functions" ::name])
+(def versioned-fn-url (into fn-url ["versions" ::version]))
+
+(def target->url
+  {:add-permission [:post (conj versioned-fn-url "policy")]
+   :get-function   [:get  versioned-fn-url]
+   :invoke         [:post (conj fn-url "invocations")]})
+
 (defmulti prepare-request :target)
+
+(defmethod prepare-request :add-permission
+  [{{:keys [function-name] :as body} :body endpoint :endpoint :as req}]
+  (assoc req
+         :body (->>
+                (dissoc body :function-name)
+                (util.query/transform-policy-clause util.query/policy-key-out)
+                (csk-extras/transform-keys csk/->PascalCaseString))))
 
 (defmethod prepare-request :get-function
   [{{:keys [function-name]} :body endpoint :endpoint :as req}]
-  (assoc req
-         :endpoint (url/url
-                    endpoint service-version "functions"
-                    (name function-name) "versions" "HEAD")
-         :method :get
-         :body {}))
+  (assoc req :body {}))
 
 (defmethod prepare-request :invoke
-  [{{:keys [invocation-type payload function-name]} :body endpoint :endpoint :as req}]
+  [{{:keys [invocation-type payload] :as body} :body endpoint :endpoint :as req}]
   (with-meta
     (assoc req
-           :endpoint (url/url
-                      endpoint service-version "functions"
-                      (name function-name) "invocations")
            :body payload
-           :method :post)
+           :headers (body->headers body))
     {:eulalie.lambda/invocation-type invocation-type}))
 
 (defmethod eulalie/prepare-request :eulalie.service/lambda
-  [{:keys [target body] :as req}]
+  [{target :target
+    headers :headers
+    {:keys [function-name] :as body} :body :as req}]
   (let [{:keys [endpoint] :as req}
-        (util.service/default-request service-defaults req)]
+        (util.service/default-request service-defaults req)
+        [method template] (target->url target)]
     (-> req
-        (update-in [:headers] merge (body->headers body))
-        prepare-request
-        (assoc :service-name service-name))))
+        (assoc :method method
+               :endpoint (apply
+                          url/url endpoint
+                          (walk/prewalk-replace
+                           {::name function-name
+                            ::version "HEAD"}
+                           template))
+               :service-name service-name)
+        prepare-request)))
 
 (defmethod eulalie/transform-request-body :eulalie.service/lambda
   [{:keys [body]}]
   (cond-> body (not (string? body)) platform/encode-json))
 
-(defn function-error [{{:keys [x-amz-function-error]} :headers body :body}]
+(defn function-error [{{:keys [x-amz-function-error]} :headers body :body :as x}]
   (when x-amz-function-error
     {:type (csk/->kebab-case-keyword x-amz-function-error)
      :message (:errorMessage body)}))
@@ -93,6 +112,13 @@
   (-> x meta :eulalie.lambda/invocation-type (= :request-response)))
 
 (defmulti transform-response-body (fn [{{:keys [target]} :request}] target))
+(defmethod transform-response-body :add-permission [{:keys [body] :as resp}]
+  (let [{:keys [statement]} (util.query/nested-json-in body)]
+    (->> statement
+         platform/decode-json
+         (csk-extras/transform-keys util.query/policy-key-in)
+         (util.query/transform-policy-clause util.query/policy-key-in))))
+
 (defmethod transform-response-body :invoke
   [{:keys [headers request] :as response}]
   (let [{:keys [body] :as response}

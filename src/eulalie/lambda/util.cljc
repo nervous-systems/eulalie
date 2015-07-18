@@ -38,9 +38,13 @@
 (defn get-function! [creds fn-name]
   (issue! creds :get-function {:function-name fn-name}))
 
+(defn add-permission! [creds fn-name perm]
+  (issue! creds :add-permission (assoc perm :function-name fn-name)))
+
 #?(:clj
    (do
      (def thunk!!   (comp <?! thunk!))
      (def invoke!!  (comp <?! invoke!))
      (def request!! (comp <?! request!))
-     (def get-function!! (comp <?! get-function!))))
+     (def get-function!! (comp <?! get-function!))
+     (def add-permission!! (comp <?! add-permission!))))
