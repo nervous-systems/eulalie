@@ -100,3 +100,6 @@
 
 (defn decode-base64 [x]
   (.toString (js/Buffer. x "base64") "utf8"))
+
+(defn byte-array? [x]
+  (instance? js/Buffer x))

@@ -61,3 +61,8 @@
 (def decode-json #(json/decode % true))
 (def encode-base64 base64/encode)
 (def decode-base64 base64/decode)
+
+(defn- array-ctor->type-checker [t]
+  (partial instance? (type (t []))))
+
+(def byte-array? (array-ctor->type-checker byte-array))

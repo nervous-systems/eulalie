@@ -97,7 +97,7 @@
         prepare-request)))
 
 (defmethod eulalie/transform-request-body :eulalie.service/lambda
-  [{:keys [body]}]
+  [{:keys [body] :as req}]
   (cond-> body (not (string? body)) platform/encode-json))
 
 (defn function-error [{{:keys [x-amz-function-error]} :headers body :body :as x}]
