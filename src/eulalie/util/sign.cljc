@@ -6,12 +6,16 @@
      (:import [java.util.regex Pattern])))
 
 (defn quote-region-regex [service-hint]
-  (str "^(?:.+\\.)?"
-       #?(:clj
-          (Pattern/quote service-hint)
-          :cljs
-          (str/replace service-hint #"[-\\^$*+?.()|\[\]{}]" "\\$&"))
-       "[.-]([a-z0-9-]+)\\."))
+  (let [pattern (str "^(?:.+\\.)?"
+                     #?(:clj
+                        (Pattern/quote service-hint)
+                        :cljs
+                        (str/replace service-hint #"[-\\^$*+?.()|\[\]{}]" "\\$&"))
+                     "[.-]([a-z0-9-]+)\\.")]
+    #? (:clj
+        (Pattern/compile pattern)
+        :cljs
+        (js/RegExp pattern))))
 
 (defn host->region [service-hint host]
   ;; AWS does some CloundFront specific junk with service hints

@@ -103,3 +103,9 @@
 
 (defn byte-array? [x]
   (instance? js/Buffer x))
+
+(defn ba->b64-string [x]
+  (.toString x "base64"))
+
+(defn b64-string->ba [x]
+  (js/Buffer. x "base64"))

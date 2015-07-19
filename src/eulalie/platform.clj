@@ -66,3 +66,11 @@
   (partial instance? (type (t []))))
 
 (def byte-array? (array-ctor->type-checker byte-array))
+
+(def utf-8 (Charset/forName "UTF-8"))
+
+(defn ba->b64-string [^bytes x]
+  (String. ^bytes (base64/encode-bytes x) ^Charset utf-8))
+
+(defn b64-string->ba [^String x]
+  (base64/decode-bytes (.getBytes x ^Charset utf-8)))
