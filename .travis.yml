@@ -1,6 +1,6 @@
 language: clojure
 lein: lein2
-script: lein2 test
+script: lein2 test eulalie.test.core eulalie.test.dynamo eulalie.test.dynamo-streams eulalie.test.sign eulalie.test.sns eulalie.test.sqs
 env:
     global:
         - secure: "IdbXgk7c8eeFClcp3chVxgEW5igiufAYWo7RWP4gpQVOigCdaPc6x07HQL40GpAsR8n/uvJKwO1UIFP00C4wGJTCDl82SmuIykv0NLczENyR8loRU6W8xXwQQhjsNyuFs2IoAqoqdPO7BgNvQyo9N+k8R3r0/Uic3PJ7Xp1Gv8s="
