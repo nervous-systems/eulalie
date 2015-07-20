@@ -8,6 +8,7 @@
 (def response-key-types
   (assoc dynamo.key-types/response-key-types
          :stream-description :nest
+         :streams :nest
          :stream-status :enum
          :stream-view-type :enum
          :sequence-number-range :nest

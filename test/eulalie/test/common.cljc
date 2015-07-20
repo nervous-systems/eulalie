@@ -12,6 +12,11 @@
   {:access-key (env! "AWS_ACCESS_KEY")
    :secret-key (env! "AWS_SECRET_KEY")})
 
+(defn with-aws [f]
+  (if (not-empty (:secret-key creds))
+    (f creds)
+    (println "Warning: Skipping test due to empty AWS_SECRET_KEY env var")))
+
 (defn issue-raw! [req]
   (go-catching
     (let [{:keys [error] :as resp} (<? (eulalie/issue-request! req))]

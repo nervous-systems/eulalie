@@ -69,8 +69,6 @@
       (or (host->region service-hint host) default-region))))
 
 (defn get-region [service-name host]
-  ;; TODO maybe allow region to be overridden?  it's not clear under
-  ;; what circumstances we won't be able to figure it out.
   (parse-region-name service-name host))
 
 (def collapse-whitespace
