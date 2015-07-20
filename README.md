@@ -27,7 +27,7 @@ Dependencies declared via [lein-npm](https://github.com/RyanMcG/lein-npm) are `s
  - If `source-map-support` isn't available at runtime, nothing bad will happen
  - Similarly, if for some reason you'd like to disable response checksum validation, removing `crc` won't actually break anything
  - `xml2js` could probably be eliminated with a small amount of Clojurescript.
- - 
+
 ## API
 
 ### Example
