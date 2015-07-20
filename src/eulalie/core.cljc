@@ -58,10 +58,9 @@
 
 (defn parse-error [req {:keys [headers body] :as resp}]
   (util.service/decorate-error
-   (if-let [e (util.service/headers->error-type headers)]
-     {:type e}
-     (or (transform-response-error resp)
-         {:type :unrecognized}))
+   (let [e (util.service/headers->error-type headers)]
+     (or (transform-response-error (assoc resp :error {:type e}))
+         {:type (or e :unrecognized)}))
    resp))
 
 (defn handle-result

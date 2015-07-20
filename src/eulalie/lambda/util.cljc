@@ -28,7 +28,6 @@
           :function-name fn-name
           :invocation-type type)))
 
-
 (defn invoke! [creds fn-name type payload & [params]]
   (thunk! creds fn-name type (assoc params :payload payload)))
 

@@ -9,17 +9,6 @@
             [eulalie.util.query :as util.query]
             [eulalie.util.service :as util.service]))
 
-;; (def target-methods {:remove-permission :delete})
-;; (defn target->method [target]
-;;   (or (target-methods target)
-;;       (let [verb (-> target name (util/to-first-match "-"))]
-;;         ({"update" :put "get" :get "list" :get} verb :post))))
-
-;; (def simple-json #{:create-event-source-mapping
-;;                    :update-event-source-mapping
-;;                    :update-function-code
-;;                    :update-function-configuration})
-
 (def service-name "lambda")
 (def service-version "2015-03-31")
 
@@ -28,12 +17,6 @@
    :region "us-east-1"
    :service-name service-name
    :max-retries 3})
-
-;; (defn prepare-body [target body]
-;;   (cond (simple-json target)
-;;         (csk-extras/transform-keys csk/->PascalCase body)
-;;         (= target :invoke)
-;;         ()))
 
 (defn client-context->b64 [m]
   (-> m platform/encode-json platform/encode-base64))
@@ -82,7 +65,8 @@
   [{target :target
     headers :headers
     {:keys [function-name] :as body} :body :as req}]
-  (let [{:keys [endpoint] :as req}
+  (let [function-name (name function-name)
+        {:keys [endpoint] :as req}
         (util.service/default-request service-defaults req)
         [method template] (target->url target)]
     (-> req
@@ -141,4 +125,7 @@
   [{:keys [headers request] :as response}]
   (transform-response-body response))
 
-(defmethod eulalie/transform-response-error :eulalie.service/lambda [_] nil)
+(defmethod eulalie/transform-response-error :eulalie.service/lambda
+  ;; We're assuming the type was extracted from the headers
+  [{body :body error :error}]
+  (assoc error :message (-> body platform/decode-json :message)))
