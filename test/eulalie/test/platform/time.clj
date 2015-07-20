@@ -3,8 +3,11 @@
             [eulalie.platform.time :as platform.time])
   (:import org.joda.time.DateTimeUtils))
 
+(defn set-time [x]
+  (DateTimeUtils/setCurrentMillisFixed (platform.time/to-long x)))
+
 (defn with-canned-time [t f & args]
-  (DateTimeUtils/setCurrentMillisFixed (platform.time/to-long t))
+  (set-time t)
   (go-catching
     (try
       (<? (apply f args))

@@ -5,6 +5,7 @@
    [eulalie.util.service :as util.service]
    [eulalie.util :as util]
    [eulalie.platform :as platform]
+   [eulalie.creds :as creds]
    #?@ (:clj
         [[glossop.core :refer [<? <?! go-catching]]]
         :cljs
@@ -85,7 +86,10 @@
   (go-catching
     (loop [request (prepare-req request)
            retries 0]
-      (let [request' (sign-request request)
+      (let [request (cond-> request
+                      (:eulalie/type creds)
+                      (assoc :creds (<? (creds/creds->credentials creds))))
+            request' (sign-request request)
             aws-resp (-> request' platform/channel-aws-request! <?)
             result   {:response (-> aws-resp
                                     (dissoc :opts)

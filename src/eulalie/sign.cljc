@@ -4,7 +4,6 @@
             [eulalie.platform.time :as platform.time]
             [eulalie.platform :as platform]
             [eulalie.platform.crypto :as platform.crypto]
-            [eulalie.creds]
             [clojure.string :as string]
             [cemerick.url :as url]
             [clojure.set :refer [rename-keys]]))
@@ -76,7 +75,7 @@
    {:keys [time-offset endpoint body date creds] :as r}]
 
   (let [{:keys [access-key token] :as creds}
-        (-> creds eulalie.creds/creds->credentials util.sign/sanitize-creds)
+        (-> creds util.sign/sanitize-creds)
         { date :date :as r}
         (-> r
             (assoc :creds creds)

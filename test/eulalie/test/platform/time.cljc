@@ -5,8 +5,11 @@
 
 (def timekeeper (nodejs/require "timekeeper"))
 
+(defn set-time [x]
+  (.freeze timekeeper (platform.time/to-long x)))
+
 (defn with-canned-time [t f & args]
-  (.freeze timekeeper (platform.time/to-long t))
+  (set-time t)
   (go-catching
     (try
       (<? (apply f args))
