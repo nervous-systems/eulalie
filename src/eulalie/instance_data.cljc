@@ -11,13 +11,14 @@
             [eulalie.platform :as platform]
             [eulalie.util :as util]
             [clojure.set :as set]
-            [camel-snake-kebab.core :as csk])
+            [camel-snake-kebab.core :as csk]
+            [camel-snake-kebab.extras :as csk/extras])
   #?(:cljs (:require-macros [glossop.macros :refer [go-catching <?]])))
 
 (defn- parse-json-body [x]
   ;; Amazon's war against Content-Type continues
   (if (and x (pos? (count x)) (= (subs x 0 1) "{"))
-    (csk/->kebab-case-keyword (platform/decode-json x))
+    (csk-extras/transform-keys csk/->kebab-case-keyword (platform/decode-json x))
     x))
 
 (defn retrieve!

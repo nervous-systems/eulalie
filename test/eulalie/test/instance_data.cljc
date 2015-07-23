@@ -23,7 +23,7 @@
 (deftest ^:integration ^:ec2 identity-key
   (with-instance-data!
     #(go-catching
-       (is (string? (instance-data/identity-key! :private-ip))))))
+       (is (string? (<? (instance-data/identity-key! :private-ip)))))))
 
 (deftest ^:integration ^:ec2 default-iam-credentials
   (with-instance-data!
