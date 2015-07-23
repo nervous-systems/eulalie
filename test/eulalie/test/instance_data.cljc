@@ -4,38 +4,29 @@
             [eulalie.platform :as platform]
             #?@ (:clj
                  [[eulalie.test.async :refer [deftest]]
-                  [clojure.core.async :as async :refer [alt!]]
                   [clojure.test :refer [is]]
                   [glossop.core :refer [<? go-catching]]]
                  :cljs
-                 [[cljs.core.async :as async]
-                  [cemerick.cljs.test]]))
+                 [[cemerick.cljs.test]]))
   #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]]
                              [eulalie.test.async.macros :refer [deftest]]
-                             [cljs.core.async.macros :refer [alt!]]
                              [cemerick.cljs.test :refer [is]])))
-
-(defn with-async [chan result-fn]
-  (go-catching
-    (let [result (<? chan)]
-      (is (result-fn result)))))
 
 (defn with-instance-data! [f]
   (go-catching
-    (let [{:keys [error]} (<? (platform/http-get!
-                               "http://instance-data.ec2.internal"))]
+    (let [{:keys [error]}
+          (<? (platform/http-get! "http://instance-data.ec2.internal"))]
       (if-not error
         (<? (f))
         (println "Warning: Skipping test, can't retrieve instance data")))))
 
-(deftest ^:integration ^:ec2 retrieve
+(deftest ^:integration ^:ec2 identity-key
   (with-instance-data!
     #(go-catching
-       (let [data (<? (instance-data/retrieve!
-                       [:latest :dynamic :instance-identity :document]))]
-         (is (nil? data))))))
+       (is (string? (instance-data/identity-key! :private-ip))))))
 
-;; (defetst ^:integration ^:ec2 default-iam-credentials
-;;   (go-catching
-;;     (let [])))
-
+(deftest ^:integration ^:ec2 default-iam-credentials
+  (with-instance-data!
+    #(go-catching
+       (is ((every-pred :secret-key :access-key :expiration)
+            (<? (instance-data/default-iam-credentials!)))))))
