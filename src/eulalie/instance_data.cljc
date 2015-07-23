@@ -24,7 +24,7 @@
   "(retrieve! [:latest :dynamic :instance-identity :document] {:parse-json true})"
   [path &
    [{:keys [host parse-json]
-     :or {host "169.254.169.254"
+     :or {host "instance-data.ec2.internal"
           parse-json false}}]]
   (let [path (cond-> path (not (coll? path)) vector)
         url  (str "http://" host ":80/"

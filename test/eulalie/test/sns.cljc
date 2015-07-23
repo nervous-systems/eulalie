@@ -6,11 +6,9 @@
             #?@ (:clj
                  [[clojure.test :refer [is]]
                   [eulalie.test.async :refer [deftest]]
-                  [clojure.core.async :as async]
                   [glossop.core :refer [<? go-catching]]]
                  :cljs
-                 [[cemerick.cljs.test]
-                  [cljs.core.async :as async]]))
+                 [[cemerick.cljs.test]]))
   #? (:cljs (:require-macros [eulalie.test.async.macros :refer [deftest]]
                              [cemerick.cljs.test :refer [is]]
                              [glossop.macros :refer [<? go-catching]])))
