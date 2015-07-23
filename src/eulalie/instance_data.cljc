@@ -12,7 +12,7 @@
             [eulalie.util :as util]
             [clojure.set :as set]
             [camel-snake-kebab.core :as csk]
-            [camel-snake-kebab.extras :as csk/extras])
+            [camel-snake-kebab.extras :as csk-extras])
   #?(:cljs (:require-macros [glossop.macros :refer [go-catching <?]])))
 
 (defn- parse-json-body [x]
