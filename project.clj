@@ -35,6 +35,10 @@
             [lein-npm "0.5.0"]
             [com.cemerick/clojurescript.test "0.3.3"]]
 
+  :test-selectors {:default (complement :ec2)
+                   :ec2 :ec2
+                   :local #(not (or (:ec2 %) (:aws %)))}
+
   :cljsbuild
   {:builds [{:id "main"
              :source-paths ["src"]

@@ -14,7 +14,7 @@
             [camel-snake-kebab.core :as csk])
   #?(:cljs (:require-macros [glossop.macros :refer [go-catching <?]])))
 
-(defn parse-json-body [x]
+(defn- parse-json-body [x]
   ;; Amazon's war against Content-Type continues
   (if (and x (pos? (count x)) (= (subs x 0 1) "{"))
     (csk/->kebab-case-keyword (platform/decode-json x))
@@ -38,11 +38,11 @@
               :else nil)))))
 #?(:clj (def retrieve!! (comp <?! retrieve!)))
 
-(defn meta-data!
-  "(meta-data! [:iam :security-credentials])"
+(defn metadata!
+  "(metadata! [:iam :security-credentials])"
   [path & [args]]
   (retrieve! (flatten (conj [:latest :meta-data] path)) args))
-#?(:clj (def meta-data!! (comp <?! meta-data!)))
+#?(:clj (def meta-data!! (comp <?! metadata!)))
 
 (defn instance-identity!
   "(instance-identity! :document {:parse-json true})"
@@ -62,7 +62,7 @@
 
 (defn default-iam-role! []
   (go-catching
-    (some-> (meta-data! [:iam :security-credentials]) <?
+    (some-> (metadata! [:iam :security-credentials]) <?
             (util/to-first-match "\n") not-empty)))
 #?(:clj (def default-iam-role!! (comp <?! default-iam-role!)))
 
@@ -70,7 +70,7 @@
   (defn from-iso-seconds [x]
     (time.coerce/to-long (time.format/parse seconds-formatter x))))
 
-(defn tidy-iam-creds [m]
+(defn- tidy-iam-creds [m]
   (-> m
       (set/rename-keys {:access-key-id :access-key
                         :secret-access-key :secret-key})
@@ -78,7 +78,7 @@
 
 (defn iam-credentials! [role]
   (go-catching
-    (-> (meta-data!
+    (-> (metadata!
          [:iam :security-credentials (name role)]
          {:parse-json true})
         <?

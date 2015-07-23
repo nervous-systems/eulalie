@@ -1,9 +1,14 @@
 language: clojure
 lein: lein2
+before_install:
+    - wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
+    - tar xzf dynamodb_local_latest.tar.gz
+    - java -jar DynamoDBLocal.jar &
 script: lein2 test eulalie.test.core eulalie.test.dynamo eulalie.test.dynamo-streams eulalie.test.sign eulalie.test.sns eulalie.test.sqs eulalie.test.creds
 sudo: false
 env:
     global:
+        - LOCAL_DYNAMO_URL=http://localhost:8000
         - secure: "TqZqZQUazhiXgu36g8jNtNNO7GAAHCJII9lzinQsrkGInCNR6deg/090GdhOKgg02wOt85HfMtkB24ndIRGIzAJty+Cj7SPlN4GxmNXebmfoSgEv9hIeGhXYC9ir9BKLSaP85nSH/VnKl+l3PNSxpamLlTwy/NOZzbMnsO4KAGk="
         - secure: "e45AkQsYkjkZcF0Z7iq5itZZcbxYeSmdAoiG9WMWg4MXv+uEl5TSP9KNkFkZZAYcqk6ztDG93z9sLaCzuZKvHLZE2UMmJmK3P0PfDQ+j8BjK2nBte5jx7dCToEr6fXCmQ8SqG/tQMFhhtx4KzVajzLj27ZohrKehx5HZ72V5cnc="
         - secure: "MmSybNunXKcMxBjqbqs/EOzahw7nOIG9xbZXDwPJErt99mmONXSj6jNqY2pTb/QeVDQ6sscoCkvODCNgN3v73jWKrv0Qbqrw11Y1EY+nZX2eLwyrUeOeTpeTfVjpuS7zP0XzEjauJKVz+4r0nhH+JEiHCB1iScgPtPYICFXYOaI="
