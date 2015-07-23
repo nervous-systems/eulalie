@@ -97,35 +97,6 @@
           (<? (sns! :delete-platform-application
                     {:platform-application-arn arn})))))))
 
-(defn with-subscription! [f]
-  (with-transient-app!
-    (fn [p-arn]
-      (go-catching
-        (let [e-arn (<? (create-platform-endpoint! p-arn))]
-          (-> (sns!
-               :subscribe
-               {:topic-arn (<? (create-topic!))
-                :protocol  :application
-                :endpoint  e-arn})
-              <?
-              f
-              <?))))))
-
-(deftest ^:integration ^:aws list-subscriptions
-  (with-subscription!
-    (fn [s-arn]
-      (go-catching
-        (is (some map? (<? (sns! :list-subscriptions {}))))))))
-
-(deftest ^:integration ^:aws get-subscription-attributes
-  (with-subscription!
-    (fn [s-arn]
-      (go-catching
-        (is (= "application"
-               (:protocol
-                (<? (sns! :get-subscription-attributes
-                          {:subscription-arn s-arn})))))))))
-
 (deftest ^:integration ^:aws publish
   (go-catching
     (is (string?
