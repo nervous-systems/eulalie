@@ -2,17 +2,14 @@
   (:require
    [eulalie.core :as eulalie]
    [eulalie.dynamo-streams]
-   [eulalie.util :as util]
-   [glossop.util]
-   [eulalie.test.common :as test.common :refer [with-aws]]
+   [eulalie.test.common :as test.common]
+   [eulalie.test.dynamo.common :refer [with-local-dynamo!]]
    #?@ (:clj
         [[clojure.test :refer [is]]
          [glossop.core :refer [go-catching <?]]
-         [clojure.core.async :as async]
          [eulalie.test.async :refer [deftest]]]
         :cljs
         [[glossop.core]
-         [cljs.core.async :as async]
          [cemerick.cljs.test]]))
   #? (:cljs (:require-macros [cemerick.cljs.test :refer [is]]
                              [eulalie.test.async.macros :refer [deftest]]
@@ -30,21 +27,18 @@
       (:body (<? (test.common/issue-raw! req))))))
 
 (defn with-streams [f]
-  (with-aws
+  (with-local-dynamo! []
     (fn [creds]
       (go-catching
-        (let [{:keys [streams]} (<? (issue! creds :list-streams {}))]
-          (if (empty? streams)
-            (println "Warning: skipping streams test - no streams")
-            (<? (f creds streams))))))))
+        (f creds (-> (issue! creds :list-streams {}) <? :streams))))))
 
-(deftest ^:aws ^:integration list-streams
+(deftest ^:integration list-streams
   (with-streams
     (fn [creds streams]
       (go-catching
         (is (some :stream-arn streams))))))
 
-(deftest ^:aws ^:integration describe-stream
+(deftest ^:integration describe-stream
   (with-streams
     (fn [creds [{:keys [stream-arn]}]]
       (go-catching
@@ -61,7 +55,7 @@
                     :shard-id shard-id
                     :stream-arn stream-arn}))))))
 
-(deftest ^:aws ^:integration get-shard-iterator
+(deftest ^:integration get-shard-iterator
   (with-streams
     (fn [creds [{:keys [stream-arn]}]]
       (go-catching

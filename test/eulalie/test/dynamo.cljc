@@ -9,6 +9,7 @@
             [clojure.walk :as walk]
             [eulalie.core :as eulalie]
             [eulalie.dynamo]
+            [eulalie.test.common :as test.common]
             [eulalie.test.dynamo.common :as dynamo.common :refer
              [with-local-dynamo! with-remote-dynamo! issue! batch-get! table]]
             [plumbing.core :refer [dissoc-in]])
