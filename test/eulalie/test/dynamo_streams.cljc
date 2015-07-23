@@ -3,7 +3,7 @@
    [eulalie.core :as eulalie]
    [eulalie.dynamo-streams]
    [eulalie.test.common :as test.common]
-   [eulalie.test.dynamo.common :refer [with-local-dynamo!]]
+   [eulalie.test.dynamo.common :as dynamo.common :refer [with-local-dynamo!]]
    #?@ (:clj
         [[clojure.test :refer [is]]
          [glossop.core :refer [go-catching <?]]
@@ -26,20 +26,20 @@
                req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
 
-(defn with-streams [f]
+(defn with-streams! [f]
   (with-local-dynamo! []
     (fn [creds]
       (go-catching
-        (f creds (-> (issue! creds :list-streams {}) <? :streams))))))
+        (<? (f creds (-> (issue! creds :list-streams {}) <? :streams)))))))
 
 (deftest ^:integration list-streams
-  (with-streams
+  (with-streams!
     (fn [creds streams]
       (go-catching
         (is (some :stream-arn streams))))))
 
 (deftest ^:integration describe-stream
-  (with-streams
+  (with-streams!
     (fn [creds [{:keys [stream-arn]}]]
       (go-catching
         (is (:stream-description
@@ -56,7 +56,7 @@
                     :stream-arn stream-arn}))))))
 
 (deftest ^:integration get-shard-iterator
-  (with-streams
+  (with-streams!
     (fn [creds [{:keys [stream-arn]}]]
       (go-catching
         (is (<? (get-shard-iterator! creds stream-arn)))))))

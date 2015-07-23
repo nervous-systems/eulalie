@@ -41,6 +41,8 @@
 
 (def create-table-req
   {:table-name table
+   :stream-specification {:stream-enabled true
+                          :stream-view-type :new-and-old-images}
    :attribute-definitions
    [(attr [:name :S]) (attr [:age :N]) (attr [:job :S])]
    :key-schema
