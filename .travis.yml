@@ -4,7 +4,7 @@ before_install:
     - wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
     - tar xzf dynamodb_local_latest.tar.gz
     - java -jar DynamoDBLocal.jar &
-script: lein2 test eulalie.test.core eulalie.test.dynamo eulalie.test.dynamo-streams eulalie.test.sign eulalie.test.sns eulalie.test.sqs eulalie.test.creds
+script: lein2 test eulalie.test.core eulalie.test.dynamo eulalie.test.dynamo-streams eulalie.test.sign eulalie.test.sns eulalie.test.sqs eulalie.test.creds eulalie.test.instance-data
 sudo: false
 env:
     global:
