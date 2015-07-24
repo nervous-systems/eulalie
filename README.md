@@ -24,7 +24,6 @@ Clojurescript](https://nervous.io/clojure/clojurescript/aws/lambda/node/lein/201
 
 Dependencies declared via [lein-npm](https://github.com/RyanMcG/lein-npm) are `source-map-support`, [crc](https://www.npmjs.com/package/crc) and [xml2js](https://www.npmjs.com/package/xml2js).  `xml2js` is used for SNS/SQS (to ape `clojure.xml`), and will be eliminated if neither `eulalie.sns` nor `eulalie.sqs` are required.  The `dev` profile loads additional Node deps for the tests.
 
- - If `source-map-support` isn't available at runtime, nothing bad will happen
  - Similarly, if for some reason you'd like to disable response checksum validation, removing `crc` won't actually break anything
  - `xml2js` could probably be eliminated with a small amount of Clojurescript.
 
