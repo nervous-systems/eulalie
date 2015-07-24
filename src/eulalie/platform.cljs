@@ -6,9 +6,8 @@
             [clojure.walk :as walk]
             [eulalie.platform.util :refer [channel-fn]]
             [eulalie.util.service :refer [concretize-port]]
-            [glossop.core :as glossop]
-            [glossop.util :refer [close-with!]])
-  (:require-macros [glossop.macros :refer [go-catching <?]]))
+            [glossop.core :as glossop :refer-macros [go-catching <?]]
+            [glossop.util :refer [close-with!]]))
 
 (def http  (nodejs/require "http"))
 (def https (nodejs/require "https"))

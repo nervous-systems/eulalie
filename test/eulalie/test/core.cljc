@@ -6,20 +6,12 @@
    [eulalie.test.platform.time :refer [with-canned-time]]
    [clojure.walk :as walk]
    [eulalie.test.http :refer [with-local-server]]
-   #?@ (:clj
-        [[clj-time.core :as time]
-         [clojure.core.async :as async]
-         [clojure.test :refer [is]]
-         [eulalie.test.async :refer [deftest]]
-         [glossop.core :refer [go-catching <?]]]
-        :cljs
-        [[cljs-time.core :as time]
-         [cemerick.cljs.test]
-         [cljs.core.async :as async]]))
-  #? (:cljs
-      (:require-macros [glossop.macros :refer [<? go-catching]]
-                       [eulalie.test.async.macros :refer [deftest]]
-                       [cemerick.cljs.test :refer [is]])))
+   [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
+   [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+   #? (:clj
+       [clj-time.core :as time]
+       :cljs
+       [cljs-time.core :as time])))
 
 (defmethod eulalie/prepare-request :eulalie.service/test-service [req]
   (merge {:method :post :max-retries 3 :service-name "testservice"} req))

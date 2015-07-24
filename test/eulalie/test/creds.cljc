@@ -2,18 +2,12 @@
   (:require [eulalie.creds :as creds]
             [eulalie.platform.time :as platform.time]
             [eulalie.test.platform.time :refer [with-canned-time set-time]]
-            #?@ (:clj
-                 [[clojure.core.async :as async]
-                  [clojure.test :refer [is]]
-                  [eulalie.test.async :refer [deftest]]
-                  [glossop.core :refer [go-catching <?]]]
-                 :cljs
-                 [[cemerick.cljs.test]
-                  [cljs.core.async :as async]]))
-  #? (:cljs
-      (:require-macros [glossop.macros :refer [<? go-catching]]
-                       [eulalie.test.async.macros :refer [deftest]]
-                       [cemerick.cljs.test :refer [is]])))
+            [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            #? (:clj
+                [clojure.core.async :as async]
+                :cljs
+                [cljs.core.async :as async])))
 
 ;; We're building a ziggurat to the sky
 (deftest expiring-creds

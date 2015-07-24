@@ -2,11 +2,8 @@
   (:require [eulalie.core :as eulalie]
             [plumbing.map]
             [eulalie.core :as eulalie]
-            #? (:clj
-                [glossop.core :refer [<? go-catching]]
-                :cljs
-                [cljs.core.async]))
-  #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]])))
+            [glossop.core :as g
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 (defmulti translate-error-type
   (fn [service error-type]
@@ -42,4 +39,4 @@
         `(do
            (defn ~(with-meta fname!  md) ~args' ~body)
            ~(when-not (:ns &env)
-              `(defn ~(with-meta fname!! md) ~args' (glossop.core/<?! ~body)))))))
+              `(defn ~(with-meta fname!! md) ~args' (g/<?! ~body)))))))

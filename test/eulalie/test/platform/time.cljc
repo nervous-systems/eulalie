@@ -1,7 +1,7 @@
 (ns eulalie.test.platform.time
   (:require [cljs.nodejs :as nodejs]
-            [eulalie.platform.time :as platform.time])
-  (:require-macros [glossop.macros :refer [<? go-catching]]))
+            [eulalie.platform.time :as platform.time]
+            [glossop.core :refer-macros [<? go-catching]]))
 
 (def timekeeper (nodejs/require "timekeeper"))
 

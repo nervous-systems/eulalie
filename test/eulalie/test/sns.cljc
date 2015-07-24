@@ -2,16 +2,9 @@
   (:require [eulalie.core :as eulalie]
             [eulalie.sns]
             [eulalie.util.xml :as x]
-            [eulalie.test.common :as test.common :refer [creds]]
-            #?@ (:clj
-                 [[clojure.test :refer [is]]
-                  [eulalie.test.async :refer [deftest]]
-                  [glossop.core :refer [<? go-catching]]]
-                 :cljs
-                 [[cemerick.cljs.test]]))
-  #? (:cljs (:require-macros [eulalie.test.async.macros :refer [deftest]]
-                             [cemerick.cljs.test :refer [is]]
-                             [glossop.macros :refer [<? go-catching]])))
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [eulalie.test.common :as test.common
+             #? (:clj :refer :cljs :refer-macros) [deftest is]]))
 
 (defn sns! [target content & [req-overrides]]
   (go-catching
@@ -20,7 +13,7 @@
                 :target  target
                 :max-retries 0
                 :body content
-                :creds creds}
+                :creds test.common/creds}
                req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
 

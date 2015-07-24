@@ -1,10 +1,37 @@
 (ns eulalie.test.common
   (:require [eulalie.core :as eulalie]
             [eulalie.util :refer [env!]]
-            #? (:clj
-                [glossop.core :refer [<? go-catching]]))
-  #? (:cljs
-      (:require-macros [glossop.macros :refer [<? go-catching]])))
+            [glossop.core :as g
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            #?@ (:clj
+                 [[clojure.test :as test]
+                  [glossop.core :refer [<?!]]]
+                 :cljs
+                 [[cljs.test]]))
+  #? (:cljs (:require-macros [eulalie.test.common])))
+
+#? (:cljs (set! *main-cli-fn* identity))
+
+#? (:clj
+    (defmacro deftest [t-name & forms]
+      (if (:ns &env)
+        `(cljs.test/deftest ~t-name
+           (cljs.test/async
+            done#
+            (go-catching
+              (try
+                (<? (do ~@forms))
+                (catch js/Error e#
+                  (cljs.test/is (nil? e#))))
+              (done#))))
+        `(test/deftest ~t-name
+           (<?! (do ~@forms))))))
+
+#? (:clj
+    (defmacro is [& args]
+      (if (:ns &env)
+        `(cljs.test/is ~@args)
+        `(test/is ~@args))))
 
 (def gcm-api-key (env! "GCM_API_KEY"))
 

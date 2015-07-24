@@ -1,21 +1,13 @@
 (ns eulalie.test.dynamo
-  (:require #?@(:clj
-                [[clojure.test :refer [is]]
-                 [glossop.core :refer [go-catching <?]]
-                 [eulalie.test.async :refer [deftest]]]
-                :cljs
-                [[glossop.core]
-                 [cemerick.cljs.test]])
-            [clojure.walk :as walk]
+  (:require [clojure.walk :as walk]
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [eulalie.core :as eulalie]
             [eulalie.dynamo]
             [eulalie.test.common :as test.common]
             [eulalie.test.dynamo.common :as dynamo.common :refer
              [with-local-dynamo! with-remote-dynamo! issue! batch-get! table]]
-            [plumbing.core :refer [dissoc-in]])
-  #? (:cljs (:require-macros [cemerick.cljs.test :refer [is]]
-                             [eulalie.test.async.macros :refer [deftest]]
-                             [glossop.macros :refer [go-catching <?]])))
+            [plumbing.core :refer [dissoc-in]]))
 
 (defn keys= [exp act ks]
   (= (select-keys exp ks) (select-keys act ks)))

@@ -1,18 +1,13 @@
 (ns eulalie.core
-  (:require
-   [eulalie.sign :as sign]
-   [cemerick.url :refer [url]]
-   [eulalie.util.service :as util.service]
-   [eulalie.util :as util]
-   [eulalie.platform :as platform]
-   [eulalie.creds :as creds]
-   #?@ (:clj
-        [[glossop.core :refer [<? <?! go-catching]]]
-        :cljs
-        [[cljs.core.async]
-         [cljs.nodejs :as nodejs]]))
-  #? (:cljs
-      (:require-macros [glossop.macros :refer [go-catching <?]])))
+  (:require [eulalie.sign :as sign]
+            [cemerick.url :refer [url]]
+            [eulalie.util.service :as util.service]
+            [eulalie.util :as util]
+            [eulalie.platform :as platform]
+            [eulalie.creds :as creds]
+            [glossop.core :as g
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            #? (:cljs [cljs.nodejs :as nodejs])))
 
 #? (:cljs
     (try
@@ -107,7 +102,7 @@
 
 #?(:clj
    (defn issue-request!! [& args]
-     (<?! (apply issue-request! args))))
+     (g/<?! (apply issue-request! args))))
 
 (def make-client-state (partial merge {:jvm-time-offset 0}))
 
@@ -125,7 +120,4 @@
 
   #?(:clj
      (defn issue-request!!* [& args]
-       (<?! (apply issue-request!* args)))))
-
-#?(:cljs
-   (set! *main-cli-fn* identity))
+       (g/<?! (apply issue-request!* args)))))

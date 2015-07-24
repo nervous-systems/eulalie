@@ -1,17 +1,11 @@
 (ns eulalie.test.dynamo.common
   (:require
    [eulalie.core :as eulalie]
+   [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
    [eulalie.dynamo]
    [eulalie.util :as util :refer [env!]]
    [plumbing.core :refer [map-vals]]
-   [eulalie.test.common :as test.common :refer [creds]]
-   #?@ (:clj
-        [[glossop.core :refer [go-catching <?]]
-         [eulalie.test.async :refer [deftest]]]
-        :cljs
-        [[glossop.core]
-         [cemerick.cljs.test]]))
-  #? (:cljs (:require-macros [glossop.macros :refer [go-catching <?]])))
+   [eulalie.test.common :as test.common :refer [creds]]))
 
 (def attr       (partial zipmap [:attribute-name :attribute-type]))
 (def throughput (partial zipmap [:read-capacity-units :write-capacity-units]))

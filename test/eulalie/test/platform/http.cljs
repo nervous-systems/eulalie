@@ -1,9 +1,8 @@
 (ns eulalie.test.platform.http
   (:require [glossop.core]
             [cljs.nodejs :as nodejs]
-            [eulalie.platform.util :refer [channel-fn]])
-  (:require-macros [cljs.core.async.macros :refer [go]]
-                   [glossop.macros :refer [go-catching <?]]))
+            [eulalie.platform.util :refer [channel-fn]]
+            [glossop.core :refer-macros [go-catching <?]]))
 
 (def portfinder (nodejs/require "portfinder"))
 (def http       (nodejs/require "http"))

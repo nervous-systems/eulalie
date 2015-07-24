@@ -2,15 +2,9 @@
   (:require [eulalie.core :as eulalie]
             [eulalie.instance-data :as instance-data]
             [eulalie.platform :as platform]
-            #?@ (:clj
-                 [[eulalie.test.async :refer [deftest]]
-                  [clojure.test :refer [is]]
-                  [glossop.core :refer [<? go-catching]]]
-                 :cljs
-                 [[cemerick.cljs.test]]))
-  #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]]
-                             [eulalie.test.async.macros :refer [deftest]]
-                             [cemerick.cljs.test :refer [is]])))
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [eulalie.test.common :as test.common
+             #? (:clj :refer :cljs :refer-macros) [deftest is]]))
 
 (defn with-instance-data! [f]
   (go-catching

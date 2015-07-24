@@ -2,18 +2,10 @@
   (:require
    [eulalie.core :as eulalie]
    [eulalie.dynamo-streams]
-   [eulalie.test.common :as test.common]
    [eulalie.test.dynamo.common :as dynamo.common :refer [with-local-dynamo!]]
-   #?@ (:clj
-        [[clojure.test :refer [is]]
-         [glossop.core :refer [go-catching <?]]
-         [eulalie.test.async :refer [deftest]]]
-        :cljs
-        [[glossop.core]
-         [cemerick.cljs.test]]))
-  #? (:cljs (:require-macros [cemerick.cljs.test :refer [is]]
-                             [eulalie.test.async.macros :refer [deftest]]
-                             [glossop.macros :refer [go-catching <?]])))
+   [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+   [eulalie.test.common :as test.common
+    #? (:clj :refer :cljs :refer-macros) [deftest is]]))
 
 (defn issue! [creds target content & [req-overrides]]
   (go-catching

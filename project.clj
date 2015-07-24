@@ -32,8 +32,7 @@
                       [xml2js             "0.4.9"]] ;; sns/sqs
 
   :plugins [[lein-cljsbuild "1.0.6"]
-            [lein-npm "0.5.0"]
-            [com.cemerick/clojurescript.test "0.3.3"]]
+            [lein-npm "0.5.0"]]
 
   :test-selectors {:default (complement :ec2)
                    :ec2 :ec2
@@ -47,16 +46,14 @@
                         :hashbang false
                         :optimizations :none
                         :source-map true}}
-            {:id "test"
+            {:id "test-none"
              :source-paths ["src" "test"]
-             :compiler {:output-to "target/js-test/test.js"
-                        :output-dir "target/js-test"
+             :notify-command ["node" "target/test-none/eulalie-test.js"]
+             :compiler {:output-to "target/test-none/eulalie-test.js"
+                        :output-dir "target/test-none"
                         :target :nodejs
-                        :hashbang false
-                        :source-map true
-                        :optimizations :none}}]
-   :test-commands {"node" ["node" "runner-none.js" "target/js-test"
-                           "target/js-test/test.js"]}}
+                        :optimizations :none
+                        :main "eulalie.test.runner"}}]}
   :profiles {:dev
              {:repl-options
               {:nrepl-middleware
@@ -66,6 +63,5 @@
                [timekeeper         "0.0.5"]]
               :dependencies
               [[com.cemerick/piggieback "0.2.1"]
-               [org.clojure/tools.nrepl "0.2.10"]
-               [com.cemerick/clojurescript.test "0.3.3"]]
+               [org.clojure/tools.nrepl "0.2.10"]]
               :source-paths ["src" "test"]}})

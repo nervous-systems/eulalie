@@ -2,12 +2,7 @@
   (:require [eulalie.core :as eulalie]
             [eulalie.sqs]
             [eulalie.test.common :as test.common :refer [creds]]
-            #?@ (:clj
-                 [[clojure.core.async :as async]
-                  [glossop.core :refer [<? go-catching]]]
-                 :cljs
-                 [[cljs.core.async :as async]]))
-  #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]])))
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 (defn sqs! [target content & [req-overrides]]
   (go-catching

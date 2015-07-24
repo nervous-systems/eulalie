@@ -1,12 +1,12 @@
-(ns eulalie.test.dynamo.mapping-test
+(ns eulalie.test.dynamo.mapping
   (:require [eulalie.util.json.mapping :as mapping]
             [eulalie.test.dynamo.test-data :as test-data]
             [eulalie.dynamo.key-types :as key-types]
             [eulalie.util]
-            [clojure.data :as data]
             #? (:clj
-                [clojure.test :refer [deftest is]]))
-  #? (:cljs (:require-macros [cemerick.cljs.test :refer [deftest is]])))
+                [clojure.test :refer [deftest is]]
+                :cljs
+                [cljs.test :refer-macros [deftest is]])))
 
 (deftest request-transform-all
   (let [actual (mapping/transform-request

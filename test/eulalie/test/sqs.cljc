@@ -2,18 +2,9 @@
   (:require [eulalie.core :as eulalie]
             [eulalie.sqs]
             [eulalie.test.sqs.util :refer [sqs!] :as sqs.util]
-            [eulalie.test.common :as test.common :refer [creds]]
-            #?@ (:clj
-                 [[eulalie.test.async :refer [deftest]]
-                  [clojure.core.async :as async]
-                  [clojure.test :refer [is]]
-                  [glossop.core :refer [<? go-catching]]]
-                 :cljs
-                 [[cemerick.cljs.test]
-                  [cljs.core.async :as async]]))
-  #? (:cljs (:require-macros [glossop.macros :refer [<? go-catching]]
-                             [eulalie.test.async.macros :refer [deftest]]
-                             [cemerick.cljs.test :refer [is]])))
+            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [eulalie.test.common :as test.common
+             #? (:clj :refer :cljs :refer-macros) [deftest is]]))
 
 (deftest ^:integration ^:aws get-queue-attributes
   (sqs.util/with-transient-queue!

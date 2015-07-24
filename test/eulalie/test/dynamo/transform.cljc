@@ -1,9 +1,10 @@
-(ns eulalie.test.dynamo.sync
+(ns eulalie.test.dynamo.transform
   (:require [eulalie.core :as eulalie]
             [eulalie.dynamo]
             #? (:clj
-                [clojure.test :refer [deftest is]]))
-  #? (:cljs (:require-macros [cemerick.cljs.test :refer [deftest is]])))
+                [clojure.test :refer [deftest is]]
+                :cljs
+                [cljs.test :refer-macros [deftest is]])))
 
 (def table :eulalie-test-table)
 

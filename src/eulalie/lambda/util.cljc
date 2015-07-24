@@ -1,12 +1,8 @@
 (ns eulalie.lambda.util
   (:require [eulalie.core :as eulalie]
             [eulalie.lambda]
-            #?@(:clj
-                [[glossop.core :refer [go-catching <? <?!]]]
-                :cljs
-                [[cljs.core.async]]))
-  #?(:cljs
-     (:require-macros [glossop.macros :refer [go-catching <?]])))
+            [glossop.core :as g
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 (defn issue! [creds target body]
   (go-catching
@@ -42,8 +38,8 @@
 
 #?(:clj
    (do
-     (def thunk!!   (comp <?! thunk!))
-     (def invoke!!  (comp <?! invoke!))
-     (def request!! (comp <?! request!))
-     (def get-function!! (comp <?! get-function!))
-     (def add-permission!! (comp <?! add-permission!))))
+     (def thunk!!   (comp g/<?! thunk!))
+     (def invoke!!  (comp g/<?! invoke!))
+     (def request!! (comp g/<?! request!))
+     (def get-function!! (comp g/<?! get-function!))
+     (def add-permission!! (comp g/<?! add-permission!))))

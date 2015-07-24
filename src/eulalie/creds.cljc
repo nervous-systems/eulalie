@@ -2,10 +2,8 @@
   (:require [eulalie.util :as util]
             [eulalie.instance-data :as instance-data]
             [eulalie.platform.time :as platform.time]
-            #? (:clj
-                [glossop.core :refer [<? go-catching]]))
-  #?(:cljs
-     (:require-macros [glossop.macros :refer [go-catching <?]])))
+            [glossop.core :as g
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 (defn env []
   (let [token (util/env! "AWS_SESSION_TOKEN")]
@@ -30,6 +28,7 @@
   (go-catching
     (reset! current (<? (refresh)))
     creds))
+#? (:clj (def refresh!! (comp g/<?! refresh!)))
 
 (defmethod creds->credentials :expiring
   [{:keys [threshold current refresh] :as m}]

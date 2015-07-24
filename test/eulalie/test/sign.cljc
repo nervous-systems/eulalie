@@ -4,9 +4,9 @@
             [cemerick.url :refer [url]]
             [clojure.string :as str]
             #? (:clj
-                [clojure.test :refer [deftest is]]))
-  #? (:cljs
-      (:require-macros [cemerick.cljs.test :refer [deftest is]])))
+                [clojure.test :refer [deftest is]]
+                :cljs
+                [cljs.test :refer-macros [deftest is]])))
 
 (defn decompose-auth [s]
   (let [[h & t] (str/split s #",*\s+")]
