@@ -7,7 +7,7 @@
             [eulalie.platform.util :refer [channel-fn]]
             [eulalie.util.service :refer [concretize-port]]
             [glossop.core :as glossop :refer-macros [go-catching <?]]
-            [glossop.util :refer [close-with!]]))
+            [glossop.util :as glossop.util :refer [close-with!]]))
 
 (def http  (nodejs/require "http"))
 (def https (nodejs/require "https"))
@@ -41,20 +41,12 @@
     (.end node-req body)
     ch))
 
-(defn reduce* [f init ch]
-  (go-catching
-    (loop [ret init]
-      (let [v (<? ch)]
-        (if (nil? v)
-          ret
-          (recur (f ret v)))))))
-
 (defn channel-request! [req]
   (go-catching
     (try
       (let [ch    (request! req)
             resp  (<? ch)
-            body  (<? (reduce* str "" ch))]
+            body  (<? (glossop.util/reduce str "" ch))]
         (assoc resp :body body))
       (catch js/Error e
         {:error e}))))
