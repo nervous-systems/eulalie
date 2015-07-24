@@ -2,30 +2,43 @@
 
 [![Clojars Project](http://clojars.org/io.nervous/eulalie/latest-version.svg)](http://clojars.org/io.nervous/eulalie)
 
-Asynchronous AWS client supporting Clojure/JVM & Clojurescript/Node.  Dynamo, Dynamo Streams, SNS and SQS are fully implemented, with more services to come.
+Asynchronous AWS client supporting Clojure/JVM & Clojurescript/Node.
 
-There is also support for some [Lambda](http://aws.amazon.com/documentation/lambda/)
-functionality (`invoke`, `get-function`, etc.) and an API for the retrieval of EC2 instance metadata.
+### Services
 
-There are a couple of higher-level clients built with Eulalie - if you're interested in consuming Dynamo, Dynamo Streams, SQS, or SNS, it's highly recommended that you rather use either:
+ -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) Dynamo
+ -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) Dynamo Streams
+ -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) SNS
+ -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) SQS
+ -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-yellow-icons-by-turbomilk/png/16x16/check_mark.png) Lambda ([documentation](https://github.com/nervous-systems/eulalie/wiki/eulalie.lambda.util))
+ 
+### Utilities
+ - [eulalie.creds](https://github.com/nervous-systems/eulalie/wiki/eulalie.creds) - Retrieval/refreshing of instance-specific IAM role credentials, etc.
+ - [eulalie.instance-data](https://github.com/nervous-systems/eulalie/blob/master/src/eulalie/instance_data.cljc) - Utilities for structured retrieval of EC2 instance metadata.
 
- - [Hildebrand, a DynamoDB & Dynamo Streams client](https://github.com/nervous-systems/hildebrand)
- - [Fink-Nottle, a client for SQS & SNS](https://github.com/nervous-systems/fink-nottle)
+### Higher-level Clients
 
-Some of the other functionality (`eulalie.lambda.util`, `eulalie.creds`, `eulalie.instance-data`) is intended for direct consumption).
+There are a couple of higher-level clients built with Eulalie, which also support Node-based execution - if you're interested in consuming Dynamo, Dynamo Streams, SQS, or SNS, it's highly recommended that you rather use either:
+
+ - [Hildebrand](https://github.com/nervous-systems/hildebrand) - Dynamo/Streams
+ - [Fink-Nottle](https://github.com/nervous-systems/fink-nottle) - SNS & SNS
 
 ## Clojurescript
 
-Because eulalie relies on EDN representations of everything (requests, responses, credentials, etc.), and was pure Clojure, it seemed natural to have it target Clojurescript. The motivating use-case was [writing AWS Lambda
-functions in
-Clojurescript](https://nervous.io/clojure/clojurescript/aws/lambda/node/lein/2015/07/05/lambda/) - which is why [Node](https://nodejs.org/) is targeted specifically.  The implementation works great, though it's very likely that there are some adjustments particular to its runtime that someone more Node-experienced might make (e.g. tuning `Agent` construction in [platform.cljs](https://github.com/nervous-systems/eulalie/blob/1e2b3222a665691effa6ec2fa2f4a49792822aa8/src/eulalie/platform.cljs#L20) for large numbers of concurrent SSL connections to a particular host).  
+The motivating use-case for Clojurescript support was the ability to [write AWS Lambda
+functions](https://nervous.io/clojure/clojurescript/aws/lambda/node/lein/2015/07/05/lambda/).  That, coupled with environmental restrictions in-browser is why [Node](https://nodejs.org/) is targeted specifically - though it wouldn't be hard to port it to another Clojurescript target.
 
-### NPM Dependencies
+### `:optimizations` `:advanced`
 
-Dependencies declared via [lein-npm](https://github.com/RyanMcG/lein-npm) are `source-map-support`, [crc](https://www.npmjs.com/package/crc) and [xml2js](https://www.npmjs.com/package/xml2js).  `xml2js` is used for SNS/SQS (to ape `clojure.xml`), and will be eliminated if neither `eulalie.sns` nor `eulalie.sqs` are required.  The `dev` profile loads additional Node deps for the tests.
+In order to enable dead-code elimination, eulalie is happy to run under `:optimizations` `:advanced`.  It includes externs for the Node standard library and its own direct NPM dependencies, declared via [lein-npm](https://github.com/RyanMcG/lein-npm):
 
- - Similarly, if for some reason you'd like to disable response checksum validation, removing `crc` won't actually break anything
- - `xml2js` could probably be eliminated with a small amount of Clojurescript.
+ - source-map-support
+ - [buffer-crc32](https://www.npmjs.com/package/buffer-crc32)
+ - [xml2js](https://www.npmjs.com/package/xml2js) (to ape `clojure.xml` in the SNS/SQS client code)
+
+### And, optimization more generally
+
+The implementation works great, though it's likely there are some adjustments particular to its runtime that someone more Node-experienced might make (e.g. tuning `Agent` construction in [platform.cljs](https://github.com/nervous-systems/eulalie/blob/master/src/eulalie/platform.cljs#L24) for large numbers of concurrent SSL connections to a particular host).  
 
 ## API
 
@@ -44,17 +57,6 @@ Dependencies declared via [lein-npm](https://github.com/RyanMcG/lein-npm) are `s
 ```
 
 The API for consuming services basically consists of `eulalie/issue-request!`.  Service-specific functionality is incorporated by requiring the appropriate namespace (e.g. `eulalie.dynamo`, above).  There are whole bunch of utilities to make service definition [pretty simple](https://github.com/nervous-systems/eulalie/blob/master/src/eulalie/dynamo.cljc).
-
-### Lambda
-
-```clojure
-(eulalie.lambda.util/request!
- {:access-key ... :secret-key ...}
- "my-lambda-function"
- {:arg1 "value" :arg2 [:value]})
-```
-
-This'll yield a channel containing either `[:ok value]` or `[:error value]` where `value` is a JSON-deserialized data structure.  Errors at the network or AWS level will be communicated by the placement of an `ExceptionInfo` object on the result channel, as with `issue-request!` - the `:ok`/`:error` variant is specifically for errors signalled by the target Lambda function.
 
 ## License
 
