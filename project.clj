@@ -27,9 +27,10 @@
    [com.andrewmcveigh/cljs-time "0.3.10"]]
   :exclusions [[org.clojure/clojure]]
 
-  :node-dependencies [[source-map-support "0.2.8"] ;; optional
-                      [crc                "3.3.0"] ;; response verification, opt.
-                      [xml2js             "0.4.9"]] ;; sns/sqs
+  :node-dependencies [[nodejs-externs     "0.10.1"]
+                      [source-map-support "0.2.8"]
+                      [buffer-crc32       "0.2.5"]
+                      [xml2js             "0.4.9"]] 
 
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]]
@@ -53,7 +54,14 @@
                         :output-dir "target/test-none"
                         :target :nodejs
                         :optimizations :none
-                        :main "eulalie.test.runner"}}]}
+                        :main "eulalie.test.runner"}}
+            {:id "test-advanced"
+             :source-paths ["src" "test"]
+             :notify-command ["node" "target/test-advanced/eulalie-test.js"]
+             :compiler {:output-to "target/test-advanced/eulalie-test.js"
+                        :output-dir "target/test-advanced"
+                        :target :nodejs
+                        :optimizations :advanced}}]}
   :profiles {:dev
              {:repl-options
               {:nrepl-middleware

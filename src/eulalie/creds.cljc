@@ -26,7 +26,12 @@
 
 (defn refresh! [{:keys [current refresh] :as creds}]
   (go-catching
-    (reset! current (<? (refresh)))
+    ;; The no expiry junk is kind of awkward, but we don't want (iam) to do any
+    ;; immediate I/O, so we just assume the credentials will expire
+    (reset! current
+            (-> (refresh)
+                <?
+                (update :expiration #(or % ::no-expiry))))
     creds))
 #? (:clj (def refresh!! (comp g/<?! refresh!)))
 
@@ -34,7 +39,7 @@
   [{:keys [threshold current refresh] :as m}]
   (go-catching
     (let [{:keys [expiration]} @current]
-      (when (or (not expiration)
+      (when (or (nil? expiration)
                 (<= (- expiration (platform.time/msecs-now)) threshold))
         ;; So this is pretty wasteful - there could be large numbers of
         ;; concurrent requests, all with the same expired credentials - they

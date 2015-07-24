@@ -48,11 +48,7 @@
   (go-catching
     (let [{:keys [error] :as resp} (<? (eulalie/issue-request! req))]
       (if (not-empty error)
-        ;; ex-info doesn't print to anything useful in cljs
-        (throw #? (:clj
-                   (ex-info  (pr-str error) error)
-                   :cljs
-                   (js/Error (pr-str error))))
+        (throw (ex-info (pr-str error) error))
         resp))))
 
 (def aws-account-id "510355070671")

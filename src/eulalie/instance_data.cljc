@@ -70,11 +70,11 @@
   (defn from-iso-seconds [x]
     (time.coerce/to-long (time.format/parse seconds-formatter x))))
 
-(defn- tidy-iam-creds [m]
-  (-> m
-      (set/rename-keys {:access-key-id :access-key
-                        :secret-access-key :secret-key})
-      (update-in [:expiration] from-iso-seconds)))
+(defn- tidy-iam-creds [{:keys [expiration] :as m}]
+  (let [m (set/rename-keys m {:access-key-id :access-key
+                              :secret-access-key :secret-key})]
+    (cond-> m
+      expiration (assoc :expiration (from-iso-seconds expiration)))))
 
 (defn iam-credentials! [role]
   (go-catching

@@ -104,7 +104,7 @@
    (defn issue-request!! [& args]
      (g/<?! (apply issue-request! args))))
 
-(def make-client-state (partial merge {:jvm-time-offset 0}))
+(def make-client-state (partial merge {:local-time-offset 0}))
 
 (let [client-state (atom (make-client-state))]
   (defn issue-request!* [{:keys [time-offset] :as request}]
@@ -112,10 +112,10 @@
       (let [request (cond-> request
                       (not time-offset)
                       (assoc :time-offset
-                             (-> client-state deref :jvm-time-offset)))
+                             (-> client-state deref :local-time-offset)))
             response (<? (issue-request! request))]
         (swap! client-state assoc
-               :jvm-time-offset (-> response :request :time-offset))
+               :local-time-offset (-> response :request :time-offset))
         response)))
 
   #?(:clj
