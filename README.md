@@ -15,11 +15,11 @@ retry/backoff policies, etc.
 
 ## Services
 
- -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) Dynamo
- -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) Dynamo Streams
- -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) SNS
- -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-green-icons-by-turbomilk/png/16x16/check_mark.png) SQS
- -  ![checkmark](http://files.softicons.com/download/toolbar-icons/iconza-yellow-icons-by-turbomilk/png/16x16/check_mark.png) Lambda ([documentation](https://github.com/nervous-systems/eulalie/wiki/eulalie.lambda.util))
+ -  ![checkmark](https://nervous.io/images/green-tick.png) Dynamo
+ -  ![checkmark](https://nervous.io/images/green-tick.png) Dynamo Streams
+ -  ![checkmark](https://nervous.io/images/green-tick.png) SNS
+ -  ![checkmark](https://nervous.io/images/green-tick.png) SQS
+ -  ![checkmark](https://nervous.io/images/yellow-tick.png) Lambda ([documentation](https://github.com/nervous-systems/eulalie/wiki/eulalie.lambda.util))
 
 ## Utilities
  - [eulalie.creds](https://github.com/nervous-systems/eulalie/wiki/eulalie.creds) - Retrieval/refreshing of instance-specific IAM role credentials, etc.
