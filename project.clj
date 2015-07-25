@@ -24,13 +24,13 @@
    [clj-time                    "0.9.0"]
    [base64-clj                  "0.1.1"]
 
-   [com.andrewmcveigh/cljs-time "0.3.10"]]
+   [com.andrewmcveigh/cljs-time "0.3.10"]
+   [io.nervous/cljs-nodejs-externs "0.1.0"]]
   :exclusions [[org.clojure/clojure]]
 
-  :node-dependencies [[nodejs-externs     "0.10.1"]
-                      [source-map-support "0.2.8"]
+  :node-dependencies [[source-map-support "0.2.8"]
                       [buffer-crc32       "0.2.5"]
-                      [xml2js             "0.4.9"]] 
+                      [xml2js             "0.4.9"]]
 
   :plugins [[lein-cljsbuild "1.0.6"]
             [lein-npm "0.5.0"]]

@@ -3,7 +3,8 @@
             [plumbing.map]
             [eulalie.core :as eulalie]
             [glossop.core :as g
-             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]])
+  #? (:cljs (:require-macros [eulalie.support])))
 
 (defmulti translate-error-type
   (fn [service error-type]
