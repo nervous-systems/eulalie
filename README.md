@@ -38,7 +38,7 @@ Streams, SQS, or SNS, it's highly recommended that you rather use either:
 # Clojurescript
 
 The motivating use-case for Clojurescript support was the ability to [write AWS Lambda
-functions](https://nervous.io/clojure/clojurescript/aws/lambda/node/lein/2015/07/05/lambda/), which is why the initial focus is on Node.  That said, all of the services currently supported (barring Lambda) can be used from the browser with the offical AWS Javascript SDK.  Supporting in-browser use is a priority for the next release.  Help would be appreciated.
+functions](https://nervous.io/clojure/clojurescript/aws/lambda/node/lein/2015/07/05/lambda/), which is why the initial focus is on Node.  That said, supporting in-browser use is a priority for the next release - all of the services currently supported (barring Lambda) can be used from the browser with the offical AWS Javascript SDK. [Help would be appreciated](https://github.com/nervous-systems/eulalie/issues/13).
 
 ## `:optimizations` `:advanced`
 
