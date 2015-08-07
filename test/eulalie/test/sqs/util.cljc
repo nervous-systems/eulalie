@@ -33,13 +33,15 @@
 (defn delete-queue! [queue] (sqs! :delete-queue {:queue-url queue}))
 
 (defn with-transient-queue! [f]
-  (go-catching
-    (let [q-name (str "eulalie-transient-" (rand-int 0xFFFF))
-          q-url  (<? (create-queue! q-name))]
-      (try
-        (<? (f {:name q-name :url q-url}))
-        (finally
-          (<? (delete-queue! q-url)))))))
+  (test.common/with-aws
+    (fn [_creds]
+      (go-catching
+        (let [q-name (str "eulalie-transient-" (rand-int 0xFFFF))
+              q-url  (<? (create-queue! q-name))]
+          (try
+            (<? (f {:name q-name :url q-url}))
+            (finally
+              (<? (delete-queue! q-url)))))))))
 
 (defn purge-queue!  [queue] (sqs! :purge-queue  {:queue-url queue}))
 

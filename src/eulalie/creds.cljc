@@ -6,11 +6,13 @@
              #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 (defn env []
-  (let [token (util/env! "AWS_SESSION_TOKEN")]
-    (cond->
-        {:access-key (util/env! "AWS_ACCESS_KEY_ID")
-         :secret-key (util/env! "AWS_SECRET_ACCESS_KEY")}
-      token (assoc :token token))))
+  (let [secret-key (util/env! "AWS_SECRET_ACCESS_KEY")
+        token      (util/env! "AWS_SESSION_TOKEN")]
+    (when (not-empty secret-key)
+      (cond->
+          {:access-key (util/env! "AWS_ACCESS_KEY_ID")
+           :secret-key secret-key}
+        token (assoc :token token)))))
 
 (defmulti creds->credentials
   "Unfortunately-named mechanism to turn the informally-specified 'creds' map

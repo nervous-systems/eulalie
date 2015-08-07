@@ -11,7 +11,7 @@
 (defn with-local-server [resps bodyf]
   (go-catching
     (let [reqs  (async/chan (count resps))
-          resps (cond-> resps (coll? resps) async/to-chan)
+          resps (async/to-chan resps)
           {:keys [port stop!]}
           (<? (start-local-server!
                (fn [req]

@@ -55,16 +55,12 @@
 (defmethod prepare-message-value :GCM [_ v]
   (csk-extras/transform-keys csk/->snake_case_keyword v))
 
-(let [dispatch-map {:APNS_SANDBOX :APNS}
-      upper-case   #{:APNS_SANDBOX :APNS :GCM}]
+(let [upper-case #{:APNS_SANDBOX :APNS :GCM}]
   (defn prepare-targeted-message [msg]
     (into {}
       (for [[k v] msg]
-        (let [k' (csk/->SCREAMING_SNAKE_CASE_KEYWORD k)
-              k  (if (upper-case k') k' k)
-              v  (prepare-message-value
-                  (dispatch-map k k)
-                  v)]
+        (let [k  (get upper-case (csk/->SCREAMING_SNAKE_CASE_KEYWORD k) k)
+              v  (prepare-message-value k v)]
           [k (cond-> v (map? v) platform/encode-json)])))))
 
 (defmethod prepare-body :publish [_ {:keys [message] :as body}]

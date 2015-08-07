@@ -7,6 +7,7 @@
                  [cljs-time.coerce :as time.coerce]])
             [glossop.core :as g
              #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [clojure.string :as str]
             [eulalie.platform :as platform]
             [eulalie.util :as util]
@@ -23,26 +24,29 @@
 (defn retrieve!
   "(retrieve! [:latest :dynamic :instance-identity :document] {:parse-json true})"
   [path &
-   [{:keys [host parse-json]
+   [{:keys [host parse-json chan close?]
      :or {host "instance-data.ec2.internal"
-          parse-json false}}]]
+          close? true}}]]
   (let [path (cond-> path (not (coll? path)) vector)
         url  (str "http://" host ":80/"
                   (str/join "/"
                             (map name path)))]
-    (go-catching
-      (let [{:keys [error body status] :as response}
-            (<? (platform/http-get! url))]
-        (cond error error
-              (= status 200) (cond-> body parse-json parse-json-body)
-              :else nil)))))
+    (cond->
+        (go-catching
+          (let [{:keys [error body status] :as response}
+                (<? (platform/http-get! url))]
+            (cond error error
+                  (= status 200) (cond-> body parse-json parse-json-body)
+                  :else nil)))
+      chan (async/pipe chan close?))))
+
 #?(:clj (def retrieve!! (comp g/<?! retrieve!)))
 
 (defn metadata!
   "(metadata! [:iam :security-credentials])"
   [path & [args]]
   (retrieve! (flatten (conj [:latest :meta-data] path)) args))
-#?(:clj (def meta-data!! (comp g/<?! metadata!)))
+#?(:clj (def metadata!! (comp g/<?! metadata!)))
 
 (defn instance-identity!
   "(instance-identity! :document {:parse-json true})"
@@ -53,16 +57,16 @@
 
 #?(:clj (def instance-identity!! (comp g/<?! instance-identity!)))
 
-(defn identity-key! [k]
+(defn identity-key! [k & [args]]
   (go-catching
-    (-> (instance-identity! :document {:parse-json true})
+    (-> (instance-identity! :document (assoc args :parse-json true))
         <?
         (get (keyword k)))))
 #?(:clj (def identity-key!! (comp g/<?! identity-key!)))
 
-(defn default-iam-role! []
+(defn default-iam-role! [& [args]]
   (go-catching
-    (some-> (metadata! [:iam :security-credentials]) <?
+    (some-> (metadata! [:iam :security-credentials] args) <?
             (util/to-first-match "\n") not-empty)))
 #?(:clj (def default-iam-role!! (comp g/<?! default-iam-role!)))
 
@@ -76,17 +80,21 @@
     (cond-> m
       expiration (assoc :expiration (from-iso-seconds expiration)))))
 
-(defn iam-credentials! [role]
-  (go-catching
-    (-> (metadata!
-         [:iam :security-credentials (name role)]
-         {:parse-json true})
-        <?
-        tidy-iam-creds)))
+(defn iam-credentials! [role & [{:keys [chan close?] :or {close? true}}]]
+  (cond->
+      (go-catching
+        (-> (metadata!
+             [:iam :security-credentials (name role)]
+             {:parse-json true})
+            <?
+            tidy-iam-creds))
+    chan (async/pipe chan close?)))
 #?(:clj (def iam-credentials!! (comp g/<?! iam-credentials!)))
 
-(defn default-iam-credentials! []
-  (go-catching
-    (when-let [default-role (<? (default-iam-role!))]
-      (<? (iam-credentials! default-role)))))
+(defn default-iam-credentials! [& [{:keys [chan close?] :or {close? true}}]]
+  (cond->
+      (go-catching
+        (when-let [default-role (<? (default-iam-role!))]
+          (<? (iam-credentials! default-role))))
+    chan (async/pipe chan close?)))
 #?(:clj (def default-iam-credentials!! (comp g/<?! default-iam-credentials!)))

@@ -5,6 +5,10 @@
             [eulalie.util :as util]
             [eulalie.platform :as platform]
             [eulalie.creds :as creds]
+            [#? (:clj
+                 clojure.core.async
+                 :cljs
+                 cljs.core.async) :as async]
             [glossop.core :as g
              #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             #? (:cljs [cljs.nodejs :as nodejs])))
@@ -43,10 +47,10 @@
                 prepare-request
                 (update-in [:endpoint] util.service/concretize-port))
         body (transform-request-body req)]
-    ;; this needs to go away, can't assume it can be counted now
     (-> req
         (assoc :body body)
         (update-in [:headers] merge
+                   ;; this needs to go away, can't assume it can be counted now
                    {:content-length (platform/byte-count body)}))))
 
 (defn ok? [{:keys [status]}]
@@ -77,47 +81,31 @@
           [:error error])))))
 
 (defn issue-request!
-  [{:keys [service creds region] :as request}]
-  (go-catching
-    (loop [request (prepare-req request)
-           retries 0]
-      (let [request (cond-> request
-                      (:eulalie/type creds)
-                      (assoc :creds (<? (creds/creds->credentials creds))))
-            request' (sign-request request)
-            aws-resp (-> request' platform/channel-aws-request! <?)
-            result   {:response (-> aws-resp
-                                    (dissoc :opts)
-                                    (assoc :request request))
-                      :retries  retries
-                      :request  request'}
-            [label value] (handle-result result)]
-        (case label
-          :ok    (assoc result :body  value)
-          :error (assoc result :error value)
-          :retry (let [{:keys [timeout error]} value
-                       request (merge request (select-keys error [:time-offset]))]
-                   (some-> timeout <?)
-                   (recur request (inc retries))))))))
+  [{:keys [service creds region chan close?]
+    :as request :or {close? true}}]
+  (cond->
+      (go-catching
+        (loop [request (prepare-req request)
+               retries 0]
+          (let [request (cond-> request
+                          (:eulalie/type creds)
+                          (assoc :creds (<? (creds/creds->credentials creds))))
+                request' (sign-request request)
+                aws-resp (-> request' platform/channel-aws-request! <?)
+                result   {:response (-> aws-resp
+                                        (dissoc :opts)
+                                        (assoc :request request))
+                          :retries  retries
+                          :request  request'}
+                [label value] (handle-result result)]
+            (case label
+              :ok    (assoc result :body  value)
+              :error (assoc result :error value)
+              :retry (let [{:keys [timeout error]} value
+                           request (merge request (select-keys error [:time-offset]))]
+                       (some-> timeout <?)
+                       (recur request (inc retries)))))))
+    chan (async/pipe chan close?)))
 
 #?(:clj
-   (defn issue-request!! [& args]
-     (g/<?! (apply issue-request! args))))
-
-(def make-client-state (partial merge {:local-time-offset 0}))
-
-(let [client-state (atom (make-client-state))]
-  (defn issue-request!* [{:keys [time-offset] :as request}]
-    (go-catching
-      (let [request (cond-> request
-                      (not time-offset)
-                      (assoc :time-offset
-                             (-> client-state deref :local-time-offset)))
-            response (<? (issue-request! request))]
-        (swap! client-state assoc
-               :local-time-offset (-> response :request :time-offset))
-        response)))
-
-  #?(:clj
-     (defn issue-request!!* [& args]
-       (g/<?! (apply issue-request!* args)))))
+   (def issue-request!! (comp g/<?! issue-request!)))
