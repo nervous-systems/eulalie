@@ -71,5 +71,5 @@
                [timekeeper         "0.0.5"]]
               :dependencies
               [[com.cemerick/piggieback "0.2.1"]
-               [org.clojure/tools.nrepl "0.2.10"]]
-              :source-paths ["src" "test"]}})
+               [org.clojure/tools.nrepl "0.2.10"]]}
+             :source-paths ["src" "test"]})
