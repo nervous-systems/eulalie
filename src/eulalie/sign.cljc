@@ -74,8 +74,8 @@
   [service-name
    {:keys [time-offset endpoint body date creds] :as r}]
 
-  (let [{:keys [access-key] :as creds} (-> creds util.sign/sanitize-creds)
-        { date :date :as r}
+  (let [{:keys [access-key] :as creds} (util.sign/sanitize-creds creds)
+        {date :date :as r}
         (-> r
             (assoc :creds creds)
             (assoc :date (or (some-> date platform.time/from-long)

@@ -47,7 +47,7 @@
         ;; concurrent requests, all with the same expired credentials - they
         ;; should all be waiting on a single request
         (<? (refresh! m)))
-      m)))
+      @current)))
 
 (defn expiring-creds
   [refresh-fn & [{:keys [threshold]
