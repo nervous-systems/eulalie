@@ -17,15 +17,15 @@
         creds (creds/expiring-creds (constantly expirations) {:threshold 0})
         expiry #(-> creds :current deref :expiration)]
     (go-catching
-      (let [creds (<? (creds/creds->credentials creds))]
-        (is (= 1 (expiry)))
-        (<? (with-canned-time 0
-              (fn []
-                (go-catching
-                  (let [creds (<? (creds/creds->credentials creds))]
-                    (is (= 1 (expiry)))
-                    (set-time 1)
-                    (let [creds (<? (creds/creds->credentials creds))]
-                      (is (= 5 (expiry)))))))))))))
+      (<? (creds/creds->credentials creds))
+      (is (= 1 (expiry)))
+      (<? (with-canned-time 0
+            (fn []
+              (go-catching
+                (<? (creds/creds->credentials creds))
+                (is (= 1 (expiry)))
+                (set-time 1)
+                (<? (creds/creds->credentials creds))
+                (is (= 5 (expiry))))))))))
 
 
