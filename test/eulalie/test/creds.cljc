@@ -29,3 +29,30 @@
                 (is (= 5 (expiry))))))))))
 
 
+(defn amy-send []
+     (go (loop [n 5]
+           (println "Amy sends" n "to Brian")
+           (>! brian n)
+           (if (> n 0) (recur (dec n)) nil))))
+
+(defn amy-receive []
+ (go-loop [_ nil]
+ (let [reply (<! brian)]
+ (println "Amy receives" reply "from Brian")
+ (if (> reply 0) (recur nil) (close! amy)))))
+
+(defn activate [[from-str from-chan] [to-str to-chan] & [start-value]]
+  (go-loop [n (or start-value (<! from-chan))]
+    (println from-str "sends" n "to" to-str)
+    (println "BEFORE WRITE")
+    (>! to-chan n)
+    (println "AFTER WRITE, B4 READ")
+    (let [reply (<! from-chan)]
+      (println "AFTER READ")
+      (println from-str "gets" reply)
+      (if (pos? reply)
+        (recur (dec reply))
+        (do
+          (close! from-chan)
+          (close! to-chan)
+          (println "Finished" from-str))))))
