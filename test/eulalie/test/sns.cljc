@@ -118,7 +118,8 @@
                  :publish
                  {:topic-arn (<? (create-topic! creds))
                   :subject "Hello"
-                  :message {:default "OK" :GCM {:data {:message "This is the GCM"}}}})
+                  :message {:default "OK" :GCM {:data {:message "This is the GCM"}}}
+                  :attrs {:name [:string "OK"]}})
                 <?
                 string?))))))
 
