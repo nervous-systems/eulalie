@@ -66,7 +66,7 @@
 (defmethod prepare-body :publish [_ {:keys [message attrs] :as body}]
   (cond-> body
     attrs (conj (q/message-attrs->dotted
-                 attrs {:prefix [:message-attributes :member]}))
+                 attrs {:prefix [:message-attributes "member"]}))
     (map? message)
     (assoc :message-structure :json
            :message (-> message
