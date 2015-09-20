@@ -78,8 +78,8 @@
 (defn translate-enums [req enum-keys]
   (let [matcher (enum-keys->matcher enum-keys)]
     (into req
-          (for [[k v] req :when (matcher k)]
-            [k (cond-> v (keyword? v) csk/->PascalCaseString)]))))
+      (for [[k v] req :when (matcher k)]
+        [k (cond-> v (keyword? v) csk/->PascalCaseString)]))))
 
 (defn join-key-paths [& segments]
   (vec (flatten (apply conj [] segments))))
@@ -152,6 +152,22 @@
                (expand-sequence sub-spec v))
          body))
      body spec)))
+
+(defn prepare-message-attrs [a-name a-type a-value]
+  (let [data-type ({:string :String
+                    :number :Number
+                    :binary :Binary} a-type a-type)
+        value-type ({:Number :String} data-type data-type)]
+    {:name a-name
+     [:value :data-type] data-type
+     [:value (str (name value-type) "Value")] a-value}))
+
+(defn message-attrs->dotted
+  [attrs & [{:keys [prefix] :or {prefix :message-attribute}}]]
+  (map-list->dotted
+   prefix
+   (for [[a-name [a-type a-value]] attrs]
+     (prepare-message-attrs a-name a-type a-value))))
 
 (defn prepare-query-request
   [{:keys [version] :as service-defaults} {:keys [body target] :as req}]

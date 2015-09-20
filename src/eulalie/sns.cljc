@@ -63,8 +63,10 @@
               v  (prepare-message-value k v)]
           [k (cond-> v (map? v) platform/encode-json)])))))
 
-(defmethod prepare-body :publish [_ {:keys [message] :as body}]
+(defmethod prepare-body :publish [_ {:keys [message attrs] :as body}]
   (cond-> body
+    attrs (conj (q/message-attrs->dotted
+                 attrs {:prefix [:message-attributes :member]}))
     (map? message)
     (assoc :message-structure :json
            :message (-> message

@@ -56,24 +56,9 @@
            redrive-policy (assoc :redrive-policy
                                  (q/nested-json-out redrive-policy)))))
 
-(defn prepare-message-attrs [a-name a-type a-value]
-  (let [data-type ({:string :String
-                    :number :Number
-                    :binary :Binary} a-type a-type)
-        value-type ({:Number :String} data-type data-type)]
-    {:name a-name
-     [:value :data-type] data-type
-     [:value (str (name value-type) "Value")] a-value}))
-
-(defn message-attrs->dotted [attrs]
-  (q/map-list->dotted
-   :message-attribute
-   (for [[a-name [a-type a-value]] attrs]
-     (prepare-message-attrs a-name a-type a-value))))
-
 (defn prepare-message [{:keys [attrs] :as message}]
   (-> message
-      (conj (message-attrs->dotted attrs))
+      (conj (q/message-attrs->dotted attrs))
       (set/rename-keys {:body :message-body})))
 
 (defmethod prepare-body :send-message [_ body]
