@@ -1,4 +1,4 @@
-(defproject io.nervous/eulalie "0.6.2-SNAPSHOT"
+(defproject io.nervous/eulalie "0.6.3"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
@@ -9,7 +9,7 @@
   :source-paths ["src"]
   :dependencies
   [[org.clojure/clojure        "1.7.0"]
-   [org.clojure/core.async     "0.1.346.0-17112a-alpha"]
+   [org.clojure/core.async     "0.2.371"]
    [org.clojure/clojurescript  "0.0-3308"]
 
    [io.nervous/glossop         "0.2.0"]

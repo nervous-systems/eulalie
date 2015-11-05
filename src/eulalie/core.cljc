@@ -98,13 +98,14 @@
                           :retries  retries
                           :request  request'}
                 [label value] (handle-result result)]
-            (case label
-              :ok    (assoc result :body  value)
-              :error (assoc result :error value)
-              :retry (let [{:keys [timeout error]} value
-                           request (merge request (select-keys error [:time-offset]))]
-                       (some-> timeout <?)
-                       (recur request (inc retries)))))))
+            (cond
+              (= label :ok)    (assoc result :body  value)
+              (= label :error) (assoc result :error value)
+              (= label :retry)
+              (let [{:keys [timeout error]} value
+                    request (merge request (select-keys error [:time-offset]))]
+                (some-> timeout <?)
+                (recur request (inc retries)))))))
     chan (async/pipe chan close?)))
 
 #?(:clj
