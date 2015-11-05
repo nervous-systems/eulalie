@@ -12,7 +12,7 @@
    [org.clojure/core.async     "0.2.371"]
    [org.clojure/clojurescript  "0.0-3308"]
 
-   [io.nervous/glossop         "0.2.0"]
+   [io.nervous/glossop         "0.2.1"]
    [prismatic/plumbing         "0.4.4"]
 
    [camel-snake-kebab          "0.3.2"]
