@@ -1,4 +1,4 @@
-(defproject io.nervous/eulalie "0.6.3"
+(defproject io.nervous/eulalie "0.6.4"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
@@ -24,7 +24,7 @@
    [clj-time                    "0.9.0"]
    [base64-clj                  "0.1.1"]
 
-   [com.andrewmcveigh/cljs-time "0.3.10"]
+   [com.andrewmcveigh/cljs-time "0.3.14"]
    [io.nervous/cljs-nodejs-externs "0.1.0"]]
   :exclusions [[org.clojure/clojure]]
 
