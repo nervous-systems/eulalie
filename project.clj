@@ -1,10 +1,8 @@
-(defproject io.nervous/eulalie "0.6.4"
+(defproject io.nervous/eulalie "0.6.5-SNAPSHOT"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
   :scm {:name "git" :url "https://github.com/nervous-systems/eulalie"}
-  :deploy-repositories [["clojars" {:creds :gpg}]]
-  :signing {:gpg-key "moe@nervous.io"}
   :global-vars {*warn-on-reflection* true}
   :source-paths ["src"]
   :dependencies
