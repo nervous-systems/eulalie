@@ -17,14 +17,25 @@
                                          :text "test body"
                                          :subject {:encoding "UTF-9" :data "test subject"}
                                          :source "info@unclipapp.com"})
-        {{:keys [message] :as body} :body} (eulalie/prepare-request input)]
+        {:keys [body]} (eulalie/prepare-request input)]
     (is (= "dan@samsungaccelerator.com" (body [:destination :to-addresses :member 1])))
-    (is (= {:text {:encoding "UTF-8" :data "test body"}} (message :body)))
-    (is (= {:encoding "UTF-9" :data "test subject"} (message :subject)))
+    (is (= "UTF-8" (body [:message :body :text :encoding])))
+    (is (= "test body" (body [:message :body :text :data])))
+    (is (= "UTF-9" (body [:message :subject :encoding])))
+    (is (= "test subject" (body [:message :subject :data])))
     (is (= "info@unclipapp.com" (body :source)))))
 
-
-;; params {:Source "info@unclipapp.com"
-;;         :Destination {:ToAddresses [email]}
-;;         :Message {:Subject {:Data subject}
-;;                   :Body {:Html {:Data email-body}}}}
+(deftest verify-email-response
+  (let [req (make-request :send-email {})
+        message-id "000001519c8bf8ff-8f4cea40-1242-482c-90cb-63335cd4a772-000000"
+        body (str "<SendEmailResponse xmlns=\"http://ses.amazonaws.com/doc/2010-12-01/\">"
+                  "<SendEmailResult>"
+                  "<MessageId>"
+                  message-id
+                  "</MessageId>"
+                  "</SendEmailResult>"
+                  "<ResponseMetadata>"
+                  "<RequestId>e1d83475-a1c5-11e5-bace-3fbec8379102</RequestId>"
+                  "</ResponseMetadata>"
+                  "</SendEmailResponse>")]
+    (is (= message-id (eulalie/transform-response-body {:request req :body body})))))

@@ -16,17 +16,18 @@
 (derive :eulalie.service/ses :eulalie.service.generic/xml-response)
 (derive :eulalie.service/ses :eulalie.service.generic/query-request)
 
-(defn wrap-content [attr]
-  (if (string? attr)
-    {:encoding "UTF-8" :data attr}
-    attr))
+(defn wrap-content [k attr]
+  (let [{:keys [encoding data]} (if (string? attr)
+                                  {:encoding "UTF-8" :data attr}
+                                  attr)]
+    {(conj k :encoding) encoding
+     (conj k :data) data}))
 
 (defn wrap-email-content [{:keys [text html subject] :as m}]
-  (assoc m :message {:subject (wrap-content subject)
-                     :body (cond-> {}
-                             text (assoc :text (wrap-content text))
-                             html (assoc :html (wrap-content html))
-                             )}))
+  (merge m
+         (wrap-content [:message :subject] subject)
+         (when html (wrap-content [:message :body :html] html))
+         (when text (wrap-content [:message :body :text] text))))
 
 (def target->seq-spec
   {:send-email
@@ -51,13 +52,10 @@
            :body (cond-> (q/expand-sequences body (target->seq-spec target))
                    (= target :send-email) wrap-email-content))))
 
+(def target->elem-spec
+  {:send-email [:one :message-id]})
+
 (defmethod eulalie/transform-response-body :eulalie.service/ses
   [{{:keys [target]} :request body :body}]
   (let [elem (platform.xml/string->xml-map body)]
-    elem))
-
-
-;; params {:Source "info@unclipapp.com"
-;;         :Destination {:ToAddresses [email]}
-;;         :Message {:Subject {:Data subject}
-;;                   :Body {:Html {:Data email-body}}}}
+    (x/extract-response-value target elem target->elem-spec)))
