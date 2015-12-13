@@ -7,6 +7,7 @@
             [eulalie.test.dynamo.transform]
             [eulalie.test.dynamo-streams]
             [eulalie.test.instance-data]
+            [eulalie.test.ses]
             [eulalie.test.sign]
             [eulalie.test.sns]
             [eulalie.test.sqs]))
@@ -20,6 +21,7 @@
    'eulalie.test.dynamo.transform
    'eulalie.test.dynamo-streams
    'eulalie.test.instance-data
+   'eulalie.test.ses
    'eulalie.test.sign
    'eulalie.test.sns
    'eulalie.test.sqs))
