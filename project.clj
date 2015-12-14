@@ -21,6 +21,7 @@
    [digest                      "1.4.4"]
    [clj-time                    "0.9.0"]
    [base64-clj                  "0.1.1"]
+   [com.taoensso/timbre         "4.1.4"]
 
    [com.andrewmcveigh/cljs-time "0.3.14"]
    [io.nervous/cljs-nodejs-externs "0.1.0"]]

@@ -5,6 +5,7 @@
             [eulalie.util :as util]
             [eulalie.platform :as platform]
             [eulalie.creds :as creds]
+            [taoensso.timbre :as log]
             [#? (:clj
                  clojure.core.async
                  :cljs
@@ -87,6 +88,8 @@
       (go-catching
         (loop [request (prepare-req request)
                retries 0]
+          (log/info "Issuing request against" (:service request) (:target request))
+          (log/debug "Request" request retries)
           (let [request (cond-> request
                           (:eulalie/type creds)
                           (assoc :creds (<? (creds/creds->credentials creds))))
@@ -99,11 +102,16 @@
                           :request  request'}
                 [label value] (handle-result result)]
             (cond
-              (= label :ok)    (assoc result :body  value)
-              (= label :error) (assoc result :error value)
+              (= label :ok)    (do
+                                 (log/debug "Response" result)
+                                 (assoc result :body  value))
+              (= label :error) (do
+                                 (log/error value (:service request) (:target request))
+                                 (assoc result :error value))
               (= label :retry)
               (let [{:keys [timeout error]} value
                     request (merge request (select-keys error [:time-offset]))]
+                (log/warn error "Retrying" (:service request) (:target request) retries)
                 (some-> timeout <?)
                 (recur request (inc retries)))))))
     chan (async/pipe chan close?)))
