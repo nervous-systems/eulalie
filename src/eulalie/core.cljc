@@ -1,11 +1,11 @@
 (ns eulalie.core
   (:require [eulalie.sign :as sign]
             [cemerick.url :refer [url]]
+            [clojure.tools.logging :as log]
             [eulalie.util.service :as util.service]
             [eulalie.util :as util]
             [eulalie.platform :as platform]
             [eulalie.creds :as creds]
-            [taoensso.timbre :as log]
             [#? (:clj
                  clojure.core.async
                  :cljs
