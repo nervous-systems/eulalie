@@ -5,6 +5,7 @@
        :cljs
        [cljs.core.async :as async])
    [eulalie.platform.time :as platform.time]
+   [clojure.string :as str]
    [eulalie.util :as util]
    [clojure.string :as string]
    [cemerick.url :as url]
@@ -18,18 +19,25 @@
   (if-not (= port -1)
     u
     (assoc u :port
-           (case protocol
-             "http" 80
-             "https" 443))))
+      (case protocol
+        "http" 80
+        "https" 443))))
 
 (defn header [headers header]
   (let [value (headers header)]
     (cond-> value
       (coll? value) first)))
 
+(defn- unfuck-netty-date-header
+  "Don't have time to find out why this happens.  We get back \"Server
+  Date,Client Date\""
+  [s]
+  (first (str/split s #",[^\s]" 2)))
+
 (defn parse-clock-skew [{:keys [headers]}]
   ;; TODO parse from SQS error message
   (or (some->> (header headers :date)
+               unfuck-netty-date-header
                platform.time/rfc822->time
                platform.time/to-long
                (- (platform.time/msecs-now)))

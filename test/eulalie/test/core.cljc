@@ -32,8 +32,7 @@
                 :body ""
                 :max-retries 0
                 :service :test-service}))]
-      (is (zero? retries))
-      (is (= :unknown-host (:type error))))))
+      (is (zero? retries)))))
 
 (deftest ^:integration hostname-retry
   (go-catching
@@ -43,8 +42,7 @@
                 :body ""
                 :max-retries 1
                 :service :test-service}))]
-      (is (= 1 retries))
-      (is (= :unknown-host (:type error))))))
+      (is (= 1 retries)))))
 
 (deftest ^:integration vague-error
   (with-local-server [{:status 400}]

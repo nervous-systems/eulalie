@@ -1,22 +1,21 @@
 (ns eulalie.core
   (:require [eulalie.sign :as sign]
-            [cemerick.url :refer [url]]
             [eulalie.util.service :as util.service]
             [eulalie.util :as util]
             [eulalie.platform :as platform]
             [eulalie.creds :as creds]
+            [eulalie.http :refer [channel-aws-request!]]
             [#? (:clj
                  clojure.core.async
                  :cljs
                  cljs.core.async) :as async]
             [glossop.core :as g
-             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
-            #? (:cljs [cljs.nodejs :as nodejs])))
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
 #? (:cljs
     (try
-      (.install (nodejs/require "source-map-support"))
-      (catch js/Error _)))
+      (.install (js/require "source-map-support"))
+      (catch :default _)))
 
 (defn req->service-dispatch [{:keys [service]}]
   (keyword "eulalie.service" (name service)))
@@ -64,7 +63,7 @@
    resp))
 
 (defn handle-result
-  [{aws-resp :response
+  [{{:keys [error] :as aws-resp} :response
     retries  :retries
     {:keys [max-retries] :as req} :request :as result}]
 
@@ -72,7 +71,7 @@
     [:error {:type :crc32-mismatch}]
     (if (ok? aws-resp)
       [:ok (transform-response-body aws-resp)]
-      (let [error (or (platform/http-response->error (:error aws-resp))
+      (let [error (or (when error aws-resp)
                       (parse-error req aws-resp))]
         (if (and (util.service/retry?
                   (:status aws-resp) error) (< retries max-retries))
@@ -83,30 +82,30 @@
 (defn issue-request!
   [{:keys [service creds region chan close?]
     :as request :or {close? true}}]
-  (cond->
-      (go-catching
-        (loop [request (prepare-req request)
-               retries 0]
-          (let [request (cond-> request
-                          (:eulalie/type creds)
-                          (assoc :creds (<? (creds/creds->credentials creds))))
-                request' (sign-request request)
-                aws-resp (-> request' platform/channel-aws-request! <?)
-                result   {:response (-> aws-resp
-                                        (dissoc :opts)
-                                        (assoc :request request))
-                          :retries  retries
-                          :request  request'}
-                [label value] (handle-result result)]
-            (cond
-              (= label :ok)    (assoc result :body  value)
-              (= label :error) (assoc result :error value)
-              (= label :retry)
-              (let [{:keys [timeout error]} value
-                    request (merge request (select-keys error [:time-offset]))]
-                (some-> timeout <?)
-                (recur request (inc retries)))))))
-    chan (async/pipe chan close?)))
+  (let [our-chan
+        (go-catching
+          (loop [request (prepare-req request)
+                 retries 0]
+            (let [request (cond-> request
+                            (:eulalie/type creds)
+                            (assoc :creds (<? (creds/creds->credentials creds))))
+                  request' (sign-request request)
+                  aws-resp (-> request' channel-aws-request! <?)
+                  result   {:response (-> aws-resp
+                                          (dissoc :opts)
+                                          (assoc :request request))
+                            :retries  retries
+                            :request  request'}
+                  [label value] (handle-result result)]
+              (cond
+                (= label :ok)    (assoc result :body  value)
+                (= label :error) (assoc result :error value)
+                (= label :retry)
+                (let [{:keys [timeout error]} value
+                      request (merge request (select-keys error [:time-offset]))]
+                  (some-> timeout <?)
+                  (recur request (inc retries)))))))]
+    (cond-> our-chan chan (async/pipe chan close?))))
 
 #?(:clj
    (def issue-request!! (comp g/<?! issue-request!)))

@@ -9,10 +9,11 @@
   :source-paths ["src"]
   :dependencies
   [[org.clojure/clojure        "1.7.0"]
-   [org.clojure/core.async     "0.2.371"]
-   [org.clojure/clojurescript  "0.0-3308"]
+   [org.clojure/core.async     "0.2.374"]
+   [org.clojure/clojurescript  "1.7.170"]
 
    [io.nervous/glossop         "0.2.1"]
+   [io.nervous/kvlt            "0.1.0-SNAPSHOT"]
    [prismatic/plumbing         "0.4.4"]
 
    [camel-snake-kebab          "0.3.2"]
@@ -21,12 +22,12 @@
    [com.cemerick/url            "0.1.1"]
    [cheshire                    "5.5.0"]
    [digest                      "1.4.4"]
-   [clj-time                    "0.9.0"]
+   [clj-time                    "0.11.0"]
    [base64-clj                  "0.1.1"]
 
    [com.andrewmcveigh/cljs-time "0.3.14"]
    [io.nervous/cljs-nodejs-externs "0.1.0"]]
-  :exclusions [[org.clojure/clojure]]
+  :exclusions [org.clojure/clojure]
 
   :node-dependencies [[source-map-support "0.2.8"]
                       [buffer-crc32       "0.2.5"]

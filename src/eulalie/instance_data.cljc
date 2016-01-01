@@ -9,6 +9,7 @@
              #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [clojure.string :as str]
+            [eulalie.http :refer [http-get!]]
             [eulalie.platform :as platform]
             [eulalie.util :as util]
             [clojure.set :as set]
@@ -34,7 +35,7 @@
     (cond->
         (go-catching
           (let [{:keys [error body status] :as response}
-                (<? (platform/http-get! url))]
+                (<? (http-get! url))]
             (cond error error
                   (= status 200) (cond-> body parse-json parse-json-body)
                   :else nil)))
