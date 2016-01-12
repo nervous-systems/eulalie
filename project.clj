@@ -1,4 +1,4 @@
-(defproject io.nervous/eulalie "0.6.5-SNAPSHOT"
+(defproject io.nervous/eulalie "0.6.7-SNAPSHOT"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}

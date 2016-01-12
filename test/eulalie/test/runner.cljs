@@ -10,7 +10,10 @@
             [eulalie.test.ses]
             [eulalie.test.sign]
             [eulalie.test.sns]
-            [eulalie.test.sqs]))
+            [eulalie.test.sqs]
+            [eulalie.test.sts]
+            [eulalie.test.cognito]
+            [eulalie.test.cognito-sync]))
 
 (defn run []
   (cljs.test/run-tests
@@ -24,7 +27,10 @@
    'eulalie.test.ses
    'eulalie.test.sign
    'eulalie.test.sns
-   'eulalie.test.sqs))
+   'eulalie.test.sqs
+   'eulalie.test.sts
+   'eulalie.test.cognito
+   'eulalie.test.cognito-sync))
 
 (enable-console-print!)
 

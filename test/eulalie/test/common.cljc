@@ -53,3 +53,14 @@
       (if (not-empty error)
         (throw (ex-info (pr-str error) error))
         resp))))
+
+(defn sts! [creds target content & [req-overrides]]
+  (go-catching
+    (let [req (merge
+               {:service :sts
+                :target  target
+                :max-retries 0
+                :body content
+                :creds creds}
+               req-overrides)]
+      (:body (<? (issue-raw! req))))))
