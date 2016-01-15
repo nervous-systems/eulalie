@@ -13,9 +13,11 @@
 
 (defn channel-request! [m]
   (let [ch (async/chan)]
-    (promesa/branch (kvlt/request! m)
+    (promesa/branch (kvlt/request! (assoc m :kvlt/trace true))
       #(async/put! ch %)
-      #(async/put! ch (assoc (ex-data %) :transport true)))
+      (fn [e]
+        (let [{:keys [status] :as m} (ex-data e)]
+          (async/put! ch (assoc m :transport (= 0 status))))))
     ch))
 
 (defn http-get! [url]

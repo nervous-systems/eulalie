@@ -1,7 +1,7 @@
 (ns eulalie.test.instance-data
   (:require [eulalie.core :as eulalie]
             [eulalie.instance-data :as instance-data]
-            [eulalie.http :refer [http-get!]]
+            [eulalie.http]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             [eulalie.test.common :as test.common
              #? (:clj :refer :cljs :refer-macros) [deftest is]]))
@@ -9,7 +9,7 @@
 (defn with-instance-data! [f]
   (go-catching
     (let [{:keys [error]}
-          (<? (http-get! "http://instance-data.ec2.internal"))]
+          (<? (eulalie.http/http-get! "http://instance-data.ec2.internal"))]
       (if-not error
         (<? (f))
         (println "Warning: Skipping test, can't retrieve instance data")))))
