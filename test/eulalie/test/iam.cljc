@@ -72,8 +72,6 @@
        "Resource" ["*"]}]}]
    ])
 
-
-
 (deftest policy-json-out
   (doseq [[input output] policies]
     (is (= (encode-json output) (iam/policy-json-out input)))))
