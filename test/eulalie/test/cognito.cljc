@@ -1,10 +1,9 @@
 (ns eulalie.test.cognito
   (:require [clojure.walk :as walk]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
-            [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
+            [eulalie.test.common :as test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [eulalie.core :as eulalie]
             [eulalie.cognito]
-            [eulalie.test.common :as test.common]
             [eulalie.util :refer [env!]]
             [plumbing.core :refer [dissoc-in]]))
 

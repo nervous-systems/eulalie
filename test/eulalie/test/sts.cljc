@@ -1,10 +1,8 @@
 (ns eulalie.test.sts
   (:require [eulalie.core :as eulalie]
             [eulalie.sts]
-            [eulalie.test.common :as test.common]
+            [eulalie.test.common :as test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [eulalie.util :refer [env!]]
-            #? (:clj [clojure.test :refer [deftest is]]
-                :cljs [cljs.test :refer-macros [deftest is]])
             [eulalie.cognito.util :refer [get-open-id-token-for-developer-identity!]]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
 
