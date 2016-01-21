@@ -2,6 +2,7 @@
   (:require [clojure.walk :as walk]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
+            [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [eulalie.core :as eulalie]
             [eulalie.cognito.util :refer [get-open-id-token-for-developer-identity!]]
             [eulalie.cognito-sync]
@@ -29,10 +30,24 @@
                req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
 
-(defn test-params []
-  {:identity-pool-id cognito-identity-pool-id
-   :dataset-name (str "test-dataset-" (random-id))
-   :identity-id cognito-identity-id})
+(defn test-params [& [m]]
+  (merge
+   {:identity-pool-id cognito-identity-pool-id
+    :dataset-name (str "test-dataset-" (random-id))
+    :identity-id cognito-identity-id}
+   m))
+
+(defn delete-datasets! [creds]
+  (go-catching
+    (let [datasets (->> (cognito-sync! creds :list-datasets (test-params))
+                        <?
+                        :datasets
+                        (map :dataset-name))
+          deletes (for [dataset datasets]
+                    (cognito-sync!
+                     creds :delete-dataset
+                     (test-params {:dataset-name dataset})))]
+      (<? (async/into [] (async/merge deletes))))))
 
 (deftest list-records-test!
   (test.common/with-aws
@@ -57,8 +72,9 @@
   (test.common/with-aws
     (fn [creds]
       (go-catching
+        (<? (delete-datasets! creds))
         (let [params (test-params)
-              {token :sync-session-token}
+              {token :sync-session-token :as x}
               (<? (cognito-sync! creds :list-records params))
               {:keys [records]} (<? (update-records! creds token params))]
           (is (= 1 (count records)))
@@ -70,6 +86,7 @@
   (test.common/with-aws
     (fn [creds]
       (go-catching
+        (<? (delete-datasets! creds))
         (let [params (test-params)
               {token :sync-session-token}
               (<? (cognito-sync! creds :list-records params))
