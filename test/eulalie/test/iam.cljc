@@ -22,6 +22,40 @@
                    "Resource" "url",
                    "Condition" {"ArnEquals" {"aws:SourceArn" "arn"}}}]})
 
+(def dynamo-policy-in {:version "2012-10-17",
+                       :statement
+                       [{:action [:cloudwatch/delete-alarms,
+                                   :dynamodb/*],
+                         :effect :allow,
+                         :resource "*",
+                         :sid "DDBConsole"},
+                        {:effect :allow,
+                         :action [:iam/get-role-policy,
+                                   :iam/pass-role],
+                         :resource ["arn:aws:execute-api:*:*:*"],
+                         :sid "IAMEDPRoles"}]})
+
+(def dynamo-policy-out {"Version" "2012-10-17",
+                        "Statement"
+                        [{"Action" ["cloudwatch:DeleteAlarms",
+                                    "dynamodb:*"],
+                          "Effect" "Allow",
+                          "Resource" "*",
+                          "Sid" "DDBConsole"},
+                         {"Effect" "Allow",
+                          "Action" ["iam:GetRolePolicy",
+                                    "iam:PassRole"],
+                          "Resource" ["arn:aws:execute-api:*:*:*"],
+                          "Sid" "IAMEDPRoles"}]})
+
+(deftest dynamo-policy-json-out
+  (let [input dynamo-policy-in
+        output (encode-json dynamo-policy-out)]
+    (is (= output (iam/policy-json-out input)))))
+
+(deftest dynamo-policy-json-in
+  (is (= dynamo-policy-in (iam/policy-json-in (encode-json dynamo-policy-out)))))
+
 (deftest policy-json-out
   (let [input policy-in
         output (encode-json policy-out)]
