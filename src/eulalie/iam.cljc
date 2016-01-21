@@ -29,12 +29,33 @@
 
 (def case-sensitive? #{"AWS"})
 
+(def case-mapping-out
+  {"principal-type" "principaltype"
+   "source-vpc" "sourceVpc"
+   "source-vpce" "sourceVpce"
+   "user-id" "userid"
+   "username" "username"})
+
+(def case-mapping-in
+  (into {}
+        (for [[k v] case-mapping-out]
+          [v k])))
+
+(defn map-output-key [k]
+  (or (case-mapping-out k)
+      (csk/->PascalCaseString k)))
+
+(defn map-input-key [k]
+  (println k)
+  (or (case-mapping-in k)
+      (csk/->kebab-case-string k)))
+
 (defn policy-key-out [k]
   (cond (case-sensitive? (name k)) k
         (and (keyword? k) (namespace k))
         (str (str/lower-case (namespace k))
              ":"
-             (csk/->PascalCaseString (name k)))
+             (map-output-key (name k)))
         (string? k) k
         :else (csk/->PascalCaseString k)))
 
@@ -43,8 +64,11 @@
     (cond
       (case-sensitive? k) (keyword k)
       (string? k)
-      (let [segments (str/split (name k) #":" 2)]
-        (apply keyword (map csk/->kebab-case-string segments)))
+      (let [[h t] (str/split (name k) #":" 2)
+            h (csk/->kebab-case-string h)]
+        (if t
+          (keyword h (map-input-key t))
+          (keyword h)))
       :else (csk/->kebab-case-keyword k))))
 
 (defn transform-policy-clause [xform-value {:keys [action effect principal] :as clause}]
