@@ -74,7 +74,7 @@
       (go-catching
         (<? (delete-datasets! creds))
         (let [params (test-params)
-              {token :sync-session-token :as x}
+              {token :sync-session-token}
               (<? (cognito-sync! creds :list-records params))
               {:keys [records]} (<? (update-records! creds token params))]
           (is (= 1 (count records)))
