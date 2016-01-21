@@ -26,4 +26,8 @@
   (json.mapping/transform-request body {:record-patches :nest}))
 
 (defmethod util.json/map-response-keys :eulalie.service/cognito-sync [{:keys [body]}]
-  (json.mapping/transform-response body {:records :nest}))
+  (json.mapping/transform-response
+   body {:records  :nest
+         :datasets :nest
+         :dataset  :nest
+         :type     :nest}))
