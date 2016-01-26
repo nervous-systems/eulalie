@@ -1,12 +1,10 @@
 (ns eulalie.test.cognito
-  (:require [clojure.walk :as walk]
-            [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
+  (:require [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [eulalie.core :as eulalie]
             [eulalie.cognito]
             [eulalie.test.common :as test.common]
-            [eulalie.util :refer [env!]]
-            [plumbing.core :refer [dissoc-in]]))
+            [eulalie.util :refer [env!]]))
 
 (def developer-provider-name (env! "COGNITO_DEVELOPER_PROVIDER_NAME"))
 (def identity-pool-id (env! "COGNITO_IDENTITY_POOL_ID"))
