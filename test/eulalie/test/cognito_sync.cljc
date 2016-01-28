@@ -4,7 +4,6 @@
             [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [eulalie.core :as eulalie]
-            [eulalie.cognito.util :refer [get-open-id-token-for-developer-identity!]]
             [eulalie.cognito-sync]
             [eulalie.test.common :as test.common]
             [eulalie.util :refer [env!]]

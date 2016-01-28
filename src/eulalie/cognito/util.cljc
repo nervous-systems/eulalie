@@ -15,9 +15,9 @@
     :body    body}))
 
 (defn get-open-id-token-for-developer-identity!
-  [creds identity-pool-id logins token-duration]
+  [creds identity-pool-id logins & [params req-args]]
   (issue! creds
           :get-open-id-token-for-developer-identity
-          {:identity-pool-id identity-pool-id
-           :logins logins
-           :token-duration token-duration}))
+          (merge params {:identity-pool-id identity-pool-id
+                         :logins logins})
+          req-args))
