@@ -13,7 +13,8 @@
             [eulalie.test.sqs]
             [eulalie.test.sts]
             [eulalie.test.cognito]
-            [eulalie.test.cognito-sync]))
+            [eulalie.test.cognito-sync]
+            [eulalie.test.elastic-transcoder]))
 
 (defn run []
   (cljs.test/run-tests
@@ -30,7 +31,8 @@
    'eulalie.test.sqs
    'eulalie.test.sts
    'eulalie.test.cognito
-   'eulalie.test.cognito-sync))
+   'eulalie.test.cognito-sync
+   'eulalie.test.elastic-transcoder))
 
 (enable-console-print!)
 

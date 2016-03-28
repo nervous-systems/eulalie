@@ -32,6 +32,12 @@
 (defmulti  map-response-keys eulalie/resp->service-dispatch)
 (defmulti  map-request-keys  eulalie/req->service-dispatch)
 
+(defmethod map-request-keys :eulalie.service.generic/json-request [{:keys [body]}]
+  body)
+
+(defmethod map-response-keys :eulalie.service.generic/json-response [{:keys [body]}]
+  body)
+
 (defmethod eulalie/transform-response-body
   :eulalie.service.generic/json-response
   [{:keys [body] :as resp}]
