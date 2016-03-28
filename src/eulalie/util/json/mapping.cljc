@@ -33,6 +33,7 @@
                             (cont v)
                             (map cont v))
            (types type) ((types type) v)
+           (fn?   type) (type v)
            :else v))])))
 
 (defn transform-request [m key-types]

@@ -14,7 +14,8 @@
             [eulalie.test.sqs]
             [eulalie.test.sts]
             [eulalie.test.cognito]
-            [eulalie.test.cognito-sync]))
+            [eulalie.test.cognito-sync]
+            [eulalie.test.elastic-transcoder]))
 
 (doo-tests
  'eulalie.test.core
@@ -30,4 +31,5 @@
  'eulalie.test.sqs
  'eulalie.test.sts
  'eulalie.test.cognito
- 'eulalie.test.cognito-sync)
+ 'eulalie.test.cognito-sync
+ 'eulalie.test.elastic-transcoder)

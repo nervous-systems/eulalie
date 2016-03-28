@@ -69,3 +69,7 @@
                 :creds creds}
                req-overrides)]
       (:body (<? (issue-raw! req))))))
+
+(let [chars (map char (range 97 112))]
+  (defn random-id []
+    (reduce str (take 16 (repeatedly #(rand-nth chars))))))
