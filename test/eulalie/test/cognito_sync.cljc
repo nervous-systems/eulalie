@@ -1,7 +1,8 @@
 (ns eulalie.test.cognito-sync
   (:require [clojure.walk :as walk]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
-            [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
+            [eulalie.test.common :as test.common
+             #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [eulalie.core :as eulalie]
             [eulalie.cognito-sync]
@@ -13,10 +14,6 @@
 (def cognito-identity-pool-id (env! "COGNITO_IDENTITY_POOL_ID"))
 (def cognito-role-arn (env! "COGNITO_ROLE_ARN"))
 (def cognito-identity-id (env! "COGNITO_IDENTITY_ID"))
-
-(let [chars (map char (range 97 112))]
-  (defn random-id []
-    (reduce str (take 16 (repeatedly #(rand-nth chars))))))
 
 (defn cognito-sync! [creds target content & [req-overrides]]
   (go-catching
@@ -32,7 +29,7 @@
 (defn test-params [& [m]]
   (merge
    {:identity-pool-id cognito-identity-pool-id
-    :dataset-name (str "test-dataset-" (random-id))
+    :dataset-name (str "test-dataset-" (test.common/random-id))
     :identity-id cognito-identity-id}
    m))
 
@@ -62,7 +59,7 @@
    creds :update-records
    (assoc test-params
      :sync-session-token token
-     :record-patches [{:key (or id (random-id))
+     :record-patches [{:key (or id (test.common/random-id))
                        :op "replace"
                        :sync-count 0
                        :value "bar"}])))

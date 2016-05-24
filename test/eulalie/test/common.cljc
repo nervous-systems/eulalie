@@ -1,6 +1,7 @@
 (ns eulalie.test.common
   (:require [eulalie.core :as eulalie]
             [eulalie.util :refer [env!]]
+            #? (:clj  [clojure.core.async.impl.protocols :as async-protocols])
             [glossop.core :as g
              #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             #?@ (:clj
@@ -16,16 +17,20 @@
     (defmacro deftest [t-name & forms]
       (if (:ns &env)
         `(cljs.test/deftest ~t-name
-           (cljs.test/async
-            done#
-            (go-catching
-              (try
-                (<? (do ~@forms))
-                (catch js/Error e#
-                  (cljs.test/is (nil? e#))))
-              (done#))))
+           (let [result# (do ~@forms)]
+             (when (satisfies? cljs.core.async.impl.protocols/ReadPort result#)
+               (cljs.test/async
+                done#
+                (go-catching
+                  (try
+                    (<? result#)
+                    (catch js/Error e#
+                      (cljs.test/is (nil? e#))))
+                  (done#))))))
         `(test/deftest ~t-name
-           (<?! (do ~@forms))))))
+           (let [result# (do ~@forms)]
+             (when (satisfies? async-protocols/ReadPort result#)
+               (<?! result#)))))))
 
 #? (:clj
     (defmacro is [& args]
@@ -64,3 +69,7 @@
                 :creds creds}
                req-overrides)]
       (:body (<? (issue-raw! req))))))
+
+(let [chars (map char (range 97 112))]
+  (defn random-id []
+    (reduce str (take 16 (repeatedly #(rand-nth chars))))))

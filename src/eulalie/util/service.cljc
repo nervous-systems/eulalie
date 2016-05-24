@@ -53,11 +53,14 @@
       (throttling-error? type)
       (clock-skew-error? type)))
 
-(def headers->error-type
-  #(some->
-    %
-    (header :x-amzn-errortype) not-empty (util/to-first-match ":") not-empty
-    ->kebab-case-keyword))
+(defn headers->error-type [m]
+  (some->
+   m
+   (header :x-amzn-errortype)
+   not-empty
+   (util/to-first-match ":")
+   not-empty
+   ->kebab-case-keyword))
 
 (defn decorate-error [{:keys [type] :as e} resp]
   (if (clock-skew-error? type)

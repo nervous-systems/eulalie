@@ -38,11 +38,11 @@
 #? (:clj (def refresh!! (comp g/<?! refresh!)))
 
 (defmethod creds->credentials :expiring
-  [{:keys [threshold current refresh] :as m}]
+  [{:keys [threshold current refresh] :as m} & [msecs-now]]
   (go-catching
     (let [{:keys [expiration]} @current]
       (when (or (nil? expiration)
-                (<= (- expiration (platform.time/msecs-now)) threshold))
+                (<= (- expiration (or msecs-now (platform.time/msecs-now))) threshold))
         ;; So this is pretty wasteful - there could be large numbers of
         ;; concurrent requests, all with the same expired credentials - they
         ;; should all be waiting on a single request
