@@ -1,7 +1,5 @@
 (ns eulalie.test.creds
   (:require [eulalie.creds :as creds]
-            [eulalie.platform.time :as platform.time]
-            [eulalie.test.platform.time :refer [with-canned-time set-time]]
             [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
             [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
             #? (:clj
@@ -9,23 +7,14 @@
                 :cljs
                 [cljs.core.async :as async])))
 
-;; We're building a ziggurat to the sky
 (deftest expiring-creds
   (let [expirations (async/to-chan
                      [{:expiration 1}
                       {:expiration 5}])
-        creds (creds/expiring-creds (constantly expirations) {:threshold 0})
-        expiry #(-> creds :current deref :expiration)]
+        creds (creds/expiring-creds (constantly expirations) {:threshold 0})]
     (go-catching
-      (<? (creds/creds->credentials creds))
-      (is (= 1 (expiry)))
-      (<? (with-canned-time 0
-            (fn []
-              (go-catching
-                (<? (creds/creds->credentials creds))
-                (is (= 1 (expiry)))
-                (set-time 1)
-                (<? (creds/creds->credentials creds))
-                (is (= 5 (expiry))))))))))
+      (is (= 1 (:expiration (<? (creds/creds->credentials creds 0)))))
+      (is (= 1 (:expiration (<? (creds/creds->credentials creds 0)))))
+      (is (= 5 (:expiration (<? (creds/creds->credentials creds 1))))))))
 
 

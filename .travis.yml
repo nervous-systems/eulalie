@@ -8,7 +8,7 @@ before_install:
     - wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
     - tar xzf dynamodb_local_latest.tar.gz
     - java -jar DynamoDBLocal.jar &
-script: ./lein test
+script: ./lein test && ./lein doo node test-none once
 env:
     global:
         - LOCAL_DYNAMO_URL=http://localhost:8000

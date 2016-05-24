@@ -2,10 +2,9 @@
   (:require
    [cemerick.url :refer [url]]
    [eulalie.core :as eulalie]
+   [eulalie.platform]
    [eulalie.platform.time :as platform.time]
-   [eulalie.test.platform.time :refer [with-canned-time]]
    [clojure.walk :as walk]
-   [eulalie.test.http :refer [with-local-server]]
    [eulalie.test.common #? (:clj :refer :cljs :refer-macros) [deftest is]]
    [glossop.core #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
    #? (:clj
@@ -46,73 +45,48 @@
       (is (= 1 retries))
       (is (= :unknown-host (:type error))))))
 
-(deftest ^:integration vague-error
-  (with-local-server [{:status 400}]
-    (fn [{:keys [url reqs]}]
-      (go-catching (loop [] (when (<? reqs) (recur))))
-      (go-catching
-        (is (= :unrecognized
-               (->
-                (eulalie/issue-request!
-                 {:endpoint url :body "" :service :test-service})
-                <?
-                :error
-                :type)))))))
+(deftest parse-error-unrecognized
+  (is (= (eulalie/parse-error {:request {:service :eulalie.service/test-service}})
+         {:type :unrecognized})))
 
-(deftest ^:integration retry-ok
-  (let [ok-resp {:status 200
-                 :headers {"content-type" "text/plain"}
-                 :body "hi from retry-ok!"}]
-    (with-local-server [{:status 500} ok-resp]
-      (fn [{:keys [url]}]
-        (go-catching
-          (let [{:keys [body retries]}
-                (<? (eulalie/issue-request!
-                     {:endpoint url :body "" :service :test-service}))]
-            (is (= "hi from retry-ok!" body))
-            (is (= 1 retries))))))))
+
+(deftest initial-retry
+  (let [req     {:service :eulalie.service/test-service :max-retries 1}
+        [tag m] (eulalie/handle-result
+                 {:response {:request req :status 500}
+                  :request  req
+                  :retries  0})]
+    (is (= tag :retry))
+    (is (nil? (get m :timeout ::not-found)))))
 
 (defn response [& [{:keys [status body headers] :or {body "" status 200}}]]
-  {:status status
-   :headers (walk/stringify-keys
-             (merge {:content-type "text/plain"} headers))
-   :body body})
+  {:status  status
+   :headers (merge {:content-type "text/plain"} headers)
+   :body    body})
 
-(def skewed-response
-  #(response
-    {:status 400
-     :headers {:date (platform.time/time->rfc822 %)
-               :x-amzn-errortype "RequestTimeTooSkewed:"}}))
+(defn skewed-response [t]
+  (response
+   {:status 400
+    :headers {:date             (platform.time/time->rfc822 t)
+              :x-amzn-errortype "RequestTimeTooSkewed:"}}))
 
-(deftest ^:integration skew-no-retry
-  (go-catching
-    (let [client-time (time/date-time 2020 01 26 11 21 59)
-          server-time (->> 5 time/minutes (time/minus client-time))
-          {reqs :reqs {{:keys [type time-offset]} :error} :result}
-          (<? (with-local-server [(skewed-response server-time)]
-                (fn [{:keys [url]}]
-                  (with-canned-time client-time
-                    eulalie/issue-request!
-                    {:endpoint url :body "" :max-retries 0 :service :test-service}))))]
-      (is (= :request-time-too-skewed type))
-      (is (= (* 1000 60 5) time-offset)))))
+(defn handle-skewed-result [t retries]
+  (let [req     {:service :eulalie.service/test-service :max-retries retries}
+        resp    (skewed-response t)]
+    (eulalie/handle-result
+     {:retries 0
+      :request req
+      :response (assoc resp :request req)})))
 
-(defn lose-msecs [t]
-  (time/minus
-   t
-   (time/millis (time/milli t))))
+(deftest skew-no-retry
+  (let [[tag m] (handle-skewed-result (time/date-time 1951) 0)]
+    (is (= :error tag))
+    (is (= :request-time-too-skewed (m :type)))
+    (is (number? (m :time-offset)))))
 
-(deftest ^:integration skew-retry
-  (go-catching
-    (let [client-time (lose-msecs (time/now))
-          server-time (time/minus client-time (time/years 1) (time/seconds 1))
-          token       (str "skew-retry-" client-time)
-          {reqs :reqs {:keys [body time-offset]} :result}
-          (<? (with-local-server [(skewed-response server-time)
-                                  (response {:status 200 :body token})]
-                (fn [{:keys [url]}]
-                  (with-canned-time client-time
-                    eulalie/issue-request!
-                    {:endpoint url :body "" :max-retries 1 :service :test-service}))))]
-      (is (= body token))
-      (is (nil? time-offset)))))
+(deftest skew-retry
+  (let [[tag {:keys [error] :as m}] (handle-skewed-result (time/date-time 1900) 1)]
+    (is (= :retry tag))
+    (is (nil? (get m :timeout ::not-found)))
+    (is (= :request-time-too-skewed (error :type)))
+    (is (number? (error :time-offset)))))

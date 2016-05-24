@@ -56,7 +56,7 @@
 (defn ok? [{:keys [status]}]
   (and status (<= 200 status 299)))
 
-(defn parse-error [req {:keys [headers body] :as resp}]
+(defn parse-error [{:keys [headers body] :as resp}]
   (util.service/decorate-error
    (let [e (util.service/headers->error-type headers)]
      (or (transform-response-error (assoc resp :error {:type e}))
@@ -73,7 +73,7 @@
     (if (ok? aws-resp)
       [:ok (transform-response-body aws-resp)]
       (let [error (or (platform/http-response->error (:error aws-resp))
-                      (parse-error req aws-resp))]
+                      (parse-error aws-resp))]
         (if (and (util.service/retry?
                   (:status aws-resp) error) (< retries max-retries))
           [:retry {:timeout (request-backoff req retries error)
