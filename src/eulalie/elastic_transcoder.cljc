@@ -1,5 +1,6 @@
 (ns eulalie.elastic-transcoder
-  (:require [camel-snake-kebab.core :as csk]
+  (:require [clojure.walk :as walk]
+            [camel-snake-kebab.core :as csk]
             [clojure.string :as str]
             [eulalie.core :as eulalie]
             [eulalie.util.service :as util.service]
@@ -7,6 +8,7 @@
             [eulalie.util.json.mapping :as json.mapping]
             [eulalie.util.json :as util.json]
             [eulalie.platform :as platform]
+            [plumbing.core :as p]
             [eulalie.util.query :as q]
             #? (:clj
                 [clojure.core.async :as async]
@@ -52,12 +54,13 @@
   (zipmap
    #{:input :outputs :captions :playlists :encryption :album-art
      :composition :caption-formats :pipelines :notifications :thumbnail-config
-     :thumbnails :content-config :presets :codec-options :video :audio :watermarks}
+     :thumbnails :content-config :presets :codec-options :video :audio :watermarks
+     :job :output :timing}
    (repeat :nest)))
 
 (def pascal-case-enums
   #{:album-art-merge :merge-policy :bit-order :audio-packing-mode :sizing-policy
-    :horizontal-align :target :padding-policy :type :vertical-align})
+    :horizontal-align :target :padding-policy :type :vertical-align :status})
 
 (def request-mapping
   (merge
@@ -68,7 +71,8 @@
 (def response-mapping
   (merge
    nested-keys
-   (zipmap pascal-case-enums (repeat #(some-> % csk/->kebab-case-keyword)))
+   (zipmap pascal-case-enums
+           (repeat #(some-> % csk/->kebab-case-keyword)))
    {:mode (fn [k] (some-> k str/lower-case keyword))
     :container  keyword
     :codec      keyword}))
@@ -81,10 +85,20 @@
               (json.mapping/transform-request
                m (assoc request-mapping :id csk/->PascalCaseString))))))
 
-(defmethod util.json/map-response-keys :eulalie.service/elastic-transcoder [{:keys [body]}]
+(defn remove-empties [form]
+  (walk/prewalk
+   (fn [form]
+     (if (map? form)
+       (p/for-map [[k v] form :when (not (or (nil? v) (and (coll? v) (empty? v))))]
+         k v)
+       form))
+   form))
+
+(defn transform-video [m]
   (json.mapping/transform-response
-   body
-   (assoc response-mapping
-     :video (fn [m]
-              (json.mapping/transform-response
-               m (assoc response-mapping :id csk/->kebab-case-keyword))))))
+   m (assoc response-mapping :id csk/->kebab-case-keyword)))
+
+(defmethod util.json/map-response-keys :eulalie.service/elastic-transcoder [{:keys [body]}]
+  (let [body (json.mapping/transform-response
+              body (assoc response-mapping :video transform-video))]
+    (remove-empties body)))

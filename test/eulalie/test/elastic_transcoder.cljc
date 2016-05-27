@@ -25,12 +25,6 @@
         (let [response (<? (transcoder! creds target req))]
           (cont response))))))
 
-(deftest ^:integration jobs-by-status
-  (with-response! :jobs-by-status {:status :progressing :ascending true}
-    (fn [resp]
-      (is (resp :jobs))
-      (is (contains? resp :next-page-token)))))
-
 (deftest ^:integration pipelines
   (with-response! :pipelines {:ascending true}
     (fn [{:keys [pipelines]}]
