@@ -45,11 +45,12 @@
 
 (deftest ^:integration describe-table
   (with-local-dynamo! []
-    #(go-catching
-       (is (->> (issue! % :describe-table {:table-name table})
-                <?
-                :table
-                (matches-create-request dynamo.common/create-table-req))))))
+    (fn [creds]
+      (go-catching
+        (is (->> (issue! creds :describe-table {:table-name table})
+                 <?
+                 :table
+                 (matches-create-request dynamo.common/create-table-req)))))))
 
 (def item-attrs  {:name {:S "Moe"} :age {:N "30"}})
 
@@ -95,8 +96,7 @@
                    {table #{{:name {:S "Moe"}} {:name {:S "Joe"}}}}))))))))
 
 (deftest ^:integration list-tables
-  (with-local-dynamo!
-    []
+  (with-local-dynamo! []
     (fn [creds]
       (go-catching
         (is (some keyword? (:table-names (<? (issue! creds :list-tables {})))))))))
@@ -108,14 +108,31 @@
         (let [item (assoc item-attrs :test-name {:S "retry-skew"})
               {:keys [retries error]}
               (<? (test.common/issue-raw!
-                   {:service :dynamo
-                    :target :put-item
-                    :creds creds
-                    :body {:table-name table :item item}
+                   {:service     :dynamo
+                    :target      :put-item
+                    :creds       creds
+                    :body        {:table-name table :item item}
                     :max-retries 1
                     :time-offset (* 1000 -60 30)}))]
           (is (= 1 retries))
           (is (empty? error))
           (is (= item
-                 (:item (<? (issue! creds :get-item {:table-name table
-                                                     :key item-attrs}))))))))))
+                 (:item (<? (issue!
+                             creds :get-item {:table-name table
+                                              :key item-attrs}))))))))))
+
+#? (:clj
+    (deftest ^:integration ^:aws bad-signature
+      (with-remote-dynamo! []
+        (fn [creds]
+          (with-redefs [eulalie.sign/aws4-sign (fn [_ req] req)]
+            (is (-> (issue! creds :get-item {}) clojure.core.async/<!! glossop.core/error?))
+            nil)))))
+
+(deftest ^:integration ^:aws bad-creds
+  (with-remote-dynamo! []
+    (fn [creds]
+      (go-catching
+        (is (-> (issue! (dissoc creds :secret-key) :get-item {})
+                #? (:clj clojure.core.async/<! :cljs cljs.core.async/<!)
+                glossop.core/error?))))))

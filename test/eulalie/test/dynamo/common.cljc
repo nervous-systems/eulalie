@@ -17,13 +17,11 @@
 
 (defn issue! [creds target content & [req-overrides]]
   (go-catching
-    (let [req (merge
-               {:service :dynamo
-                :target target
-                :max-retries 0
-                :body content
-                :creds creds}
-               req-overrides)]
+    (let [req (merge {:service     :dynamo
+                      :target      target
+                      :max-retries 0
+                      :body        content
+                      :creds       creds} req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
 
 (def batch-write! #(issue! %1 :batch-write-item {:request-items %2}))
@@ -103,5 +101,6 @@
      (if (not-empty (:secret-key creds))
        (if (not-empty items)
          (<? (with-items! creds items f))
-         (<? (f creds)))
+         (when-let [resp (f creds)]
+           (<? resp)))
        (println "Warning: Skipping remote test due to unset AWS_SECRET_KEY")))))

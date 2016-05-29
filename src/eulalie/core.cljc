@@ -1,22 +1,23 @@
 (ns eulalie.core
   (:require [eulalie.sign :as sign]
-            [cemerick.url :refer [url]]
             [eulalie.util.service :as util.service]
             [eulalie.util :as util]
             [eulalie.platform :as platform]
+            [taoensso.timbre :as log]
+            [kvlt.util :refer [pprint-str]]
             [eulalie.creds :as creds]
-            [#? (:clj
-                 clojure.core.async
-                 :cljs
-                 cljs.core.async) :as async]
+            [eulalie.http :as http]
+            [#? (:clj clojure.core.async :cljs cljs.core.async) :as async]
             [glossop.core :as g
-             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]
-            #? (:cljs [cljs.nodejs :as nodejs])))
+             #? (:clj :refer :cljs :refer-macros) [go-catching <?]]))
+
+(defn quiet! []
+  (log/merge-config! {:ns-blacklist ["eulalie.*" "kvlt.*"]}))
 
 #? (:cljs
     (try
-      (.install (nodejs/require "source-map-support"))
-      (catch js/Error _)))
+      (.install (js/require "source-map-support"))
+      (catch :default _)))
 
 (defn req->service-dispatch [{:keys [service]}]
   (keyword "eulalie.service" (name service)))
@@ -40,9 +41,7 @@
   ;; the request, e.g. "dynamodb", rather than :dynamo
   (sign/aws4-sign service-name req))
 
-(defn prepare-req
-  [{:keys [endpoint headers] :as req}]
-
+(defn prepare-req [{:keys [endpoint headers] :as req}]
   (let [req (-> req
                 prepare-request
                 (update-in [:endpoint] util.service/concretize-port))
@@ -50,18 +49,19 @@
     (-> req
         (assoc :body body)
         (update-in [:headers] merge
-                   ;; this needs to go away, can't assume it can be counted now
                    {:content-length (platform/byte-count body)}))))
 
 (defn ok? [{:keys [status]}]
   (and status (<= 200 status 299)))
 
 (defn parse-error [{:keys [headers body] :as resp}]
-  (util.service/decorate-error
-   (let [e (util.service/headers->error-type headers)]
-     (or (transform-response-error (assoc resp :error {:type e}))
-         {:type (or e :unrecognized)}))
-   resp))
+  (if (resp :transport)
+    resp
+    (util.service/decorate-error
+     (let [e (util.service/headers->error-type headers)]
+       (or (transform-response-error (assoc resp :error {:type e}))
+           {:type (or e :unrecognized)}))
+     resp)))
 
 (defn handle-result
   [{aws-resp :response
@@ -72,10 +72,9 @@
     [:error {:type :crc32-mismatch}]
     (if (ok? aws-resp)
       [:ok (transform-response-body aws-resp)]
-      (let [error (or (platform/http-response->error (:error aws-resp))
-                      (parse-error aws-resp))]
-        (if (and (util.service/retry?
-                  (:status aws-resp) error) (< retries max-retries))
+      (let [error (parse-error aws-resp)]
+        (if (and (util.service/retry? (aws-resp :status) error)
+                 (< retries max-retries))
           [:retry {:timeout (request-backoff req retries error)
                    :error   error}]
           [:error error])))))
@@ -90,22 +89,24 @@
           (let [request (cond-> request
                           (:eulalie/type creds)
                           (assoc :creds (<? (creds/creds->credentials creds))))
-                request' (sign-request request)
-                aws-resp (-> request' platform/channel-aws-request! <?)
-                result   {:response (-> aws-resp
-                                        (dissoc :opts)
-                                        (assoc :request request))
-                          :retries  retries
-                          :request  request'}
-                [label value] (handle-result result)]
-            (cond
-              (= label :ok)    (assoc result :body  value)
-              (= label :error) (assoc result :error value)
-              (= label :retry)
-              (let [{:keys [timeout error]} value
-                    request (merge request (select-keys error [:time-offset]))]
-                (some-> timeout <?)
-                (recur request (inc retries)))))))
+                request' (sign-request request)]
+            (log/debug "Issuing\n" (pprint-str request'))
+            (let [aws-resp (-> request' http/request! <?)
+                  result   {:response (-> aws-resp
+                                          (dissoc :opts)
+                                          (assoc :request request))
+                            :retries  retries
+                            :request  request'}]
+              (log/info "Received\n" (pprint-str (result :response)))
+              (let [[label value] (handle-result result)]
+                (case label
+                  :ok    (assoc result :body  value)
+                  :error (assoc result :error value)
+                  :retry
+                  (let [{:keys [timeout error]} value
+                        request (merge request (select-keys error [:time-offset]))]
+                    (some-> timeout <?)
+                    (recur request (inc retries)))))))))
     chan (async/pipe chan close?)))
 
 #?(:clj
