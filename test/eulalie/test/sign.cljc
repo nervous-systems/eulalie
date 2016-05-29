@@ -1,6 +1,5 @@
 (ns eulalie.test.sign
   (:require [eulalie.sign :as sign]
-            [cemerick.cljs.test]
             [cemerick.url :refer [url]]
             [clojure.string :as str]
             #? (:clj

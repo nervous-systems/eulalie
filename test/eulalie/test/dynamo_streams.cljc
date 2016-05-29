@@ -10,11 +10,11 @@
 (defn issue! [creds target content & [req-overrides]]
   (go-catching
     (let [req (merge
-               {:service :dynamo-streams
-                :target  target
+               {:service     :dynamo-streams
+                :target      target
                 :max-retries 0
-                :body content
-                :creds creds}
+                :body        content
+                :creds       creds}
                req-overrides)]
       (:body (<? (test.common/issue-raw! req))))))
 
