@@ -48,7 +48,6 @@
                         :source-map    true}}
             {:id "test-none"
              :source-paths ["src" "test"]
-             :notify-command ["node" "target/test-none/eulalie-test.js"]
              :compiler {:output-to "target/test-none/eulalie-test.js"
                         :output-dir "target/test-none"
                         :target        :nodejs
