@@ -13,6 +13,8 @@
 
 #? (:cljs (set! *main-cli-fn* identity))
 
+(eulalie/quiet!)
+
 #? (:clj
     (defmacro deftest [t-name & forms]
       (if (:ns &env)

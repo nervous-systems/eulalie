@@ -21,7 +21,8 @@
    :max-retries 10})
 
 (defmethod eulalie/prepare-request :eulalie.service/dynamo [req]
-  (util.json/prepare-json-request service-defaults req))
+  (-> (util.json/prepare-json-request service-defaults req)
+      (assoc :accept-encoding "identity")))
 
 (defmethod util.json/map-request-keys :eulalie.service/dynamo [{:keys [body]}]
   (json.mapping/transform-request body key-types/request-key-types))

@@ -4,11 +4,15 @@ dist: trusty
 jdk:
   - oraclejdk8
 before_install:
+    - sudo pip install awscli
     - wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein && chmod +x lein
     - wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
     - tar xzf dynamodb_local_latest.tar.gz
     - java -jar DynamoDBLocal.jar &
-script: ./lein test && ./lein doo node test-none once
+    - nvm install 5
+    - node -v
+script: ./lein test && rm -rf target && ./lein doo node test-none once
+after_failure: AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$AWS_SECRET_KEY aws s3 sync ./target s3://nervous-travis-debug/
 env:
     global:
         - LOCAL_DYNAMO_URL=http://localhost:8000

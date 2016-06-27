@@ -1,13 +1,6 @@
 (ns eulalie.platform
   (:require [base64-clj.core :as base64]
-            [camel-snake-kebab.core :as csk]
-            [cheshire.core :as json]
-            [clojure.core.async :as async]
-            [clojure.set :as set]
-            [clojure.walk :as walk]
-            [eulalie.util :as util]
-            [glossop.util :refer [close-with!]]
-            [org.httpkit.client :as http])
+            [cheshire.core   :as json])
   (:import [java.nio.charset Charset]
            [java.util.zip CRC32]))
 
@@ -28,34 +21,6 @@
         (= crc (.getValue
                 (doto (CRC32.)
                   (.update (get-utf8-bytes body))))))))
-
-(defn http-response->error [^Exception e]
-  (when e
-    {:message (.getMessage e)
-     :type    (-> e
-                  .getClass
-                  .getSimpleName
-                  (util/to-first-match "Exception")
-                  csk/->kebab-case-keyword)
-     :exception e
-     :transport true}))
-
-(defn req->http-kit [{:keys [endpoint headers] :as m}]
-  (-> m
-      (dissoc :endpoint)
-      (assoc :url (str endpoint)
-             :headers (walk/stringify-keys headers))))
-
-(defn channel-request! [m]
-  (let [ch (async/chan)]
-    (http/request m #(close-with! ch %) )
-    ch))
-
-(defn http-get! [url]
-  (channel-request! {:url (str url)}))
-
-(defn channel-aws-request! [m]
-  (channel-request! (req->http-kit m)))
 
 (def encode-json json/encode)
 (def decode-json #(json/decode % true))

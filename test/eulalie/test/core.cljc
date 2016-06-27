@@ -31,24 +31,21 @@
                 :body ""
                 :max-retries 0
                 :service :test-service}))]
-      (is (zero? retries))
-      (is (= :unknown-host (:type error))))))
+      (is (zero? retries)))))
 
 (deftest ^:integration hostname-retry
   (go-catching
     (let [{:keys [retries error]}
           (<? (eulalie/issue-request!
-               {:endpoint (url "http://eulalie.invalid")
-                :body ""
+               {:endpoint    (url "http://eulalie.invalid")
+                :body        ""
                 :max-retries 1
-                :service :test-service}))]
-      (is (= 1 retries))
-      (is (= :unknown-host (:type error))))))
+                :service     :test-service}))]
+      (is (= 1 retries)))))
 
 (deftest parse-error-unrecognized
   (is (= (eulalie/parse-error {:request {:service :eulalie.service/test-service}})
          {:type :unrecognized})))
-
 
 (deftest initial-retry
   (let [req     {:service :eulalie.service/test-service :max-retries 1}
