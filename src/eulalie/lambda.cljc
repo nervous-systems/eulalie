@@ -24,12 +24,12 @@
 (defn body->headers [{:keys [client-context invocation-type log-type]}]
   (cond-> {}
     client-context  (assoc "X-Amz-Client-Context"
-                           (cond-> client-context
-                             (map? client-context) client-context->b64))
+                      (cond-> client-context
+                        (map? client-context) client-context->b64))
     invocation-type (assoc "X-Amz-Invocation-Type"
-                           (csk/->PascalCaseString invocation-type))
+                      (csk/->PascalCaseString invocation-type))
     log-type        (assoc "X-Amz-Log-Type"
-                           (csk/->PascalCaseString log-type))))
+                      (csk/->PascalCaseString log-type))))
 
 (def fn-url [service-version "functions" ::name])
 (def versioned-fn-url (into fn-url ["versions" ::version]))
@@ -44,10 +44,10 @@
 (defmethod prepare-request :add-permission
   [{{:keys [function-name] :as body} :body endpoint :endpoint :as req}]
   (assoc req
-         :body (->>
-                (dissoc body :function-name)
-                (util.query/transform-policy-clause util.query/policy-key-out)
-                (csk-extras/transform-keys csk/->PascalCaseString))))
+    :body (->>
+           (dissoc body :function-name)
+           (util.query/transform-policy-clause util.query/policy-key-out)
+           (csk-extras/transform-keys csk/->PascalCaseString))))
 
 (defmethod prepare-request :get-function
   [{{:keys [function-name]} :body endpoint :endpoint :as req}]
@@ -57,28 +57,29 @@
   [{{:keys [invocation-type payload] :as body} :body endpoint :endpoint :as req}]
   (with-meta
     (assoc req
-           :body payload
-           :headers (body->headers body))
+      :body payload
+      :headers (body->headers body))
     {:eulalie.lambda/invocation-type invocation-type}))
 
-(defmethod eulalie/prepare-request :eulalie.service/lambda
-  [{target :target
-    headers :headers
-    {:keys [function-name] :as body} :body :as req}]
-  (let [function-name (name function-name)
-        {:keys [endpoint] :as req}
-        (util.service/default-request service-defaults req)
-        [method template] (target->url target)]
-    (-> req
-        (assoc :method method
-               :endpoint (apply
-                          url/url endpoint
-                          (walk/prewalk-replace
-                           {::name function-name
-                            ::version "HEAD"}
-                           template))
-               :service-name service-name)
-        prepare-request)))
+(defn- build-endpoint
+  [{:keys [endpoint target] {fn-name :function-name :as body} :body :as req}]
+  (let [[method template] (target->url target)
+        endpoint          (apply
+                           url/url endpoint
+                           (walk/prewalk-replace
+                            {::name    (name fn-name)
+                             ::version "HEAD"}
+                            template))]
+    (cond-> endpoint
+      (body :qualifier) (assoc :query {:Qualifier (body :qualifier)}))))
+
+(defmethod eulalie/prepare-request :eulalie.service/lambda [req]
+  (let [req (util.service/default-request service-defaults req)]
+    (prepare-request
+     (assoc req
+       :method       (req :method)
+       :endpoint     (build-endpoint req)
+       :service-name service-name))))
 
 (defmethod eulalie/transform-request-body :eulalie.service/lambda
   [{:keys [body] :as req}]
