@@ -32,6 +32,7 @@
              (close-with! ch resp)
              (let [headers (aget resp "headers")
                    status  (aget resp "statusCode")]
+               (.setEncoding resp "utf8")
                (async/put! ch {:headers (js->clj headers :keywordize-keys true)
                                :status status})
                (.on resp "data"  (partial async/put! ch))

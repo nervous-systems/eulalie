@@ -20,6 +20,9 @@ retry/backoff policies, etc.
  -  ![checkmark](https://nervous.io/images/green-tick.png) SNS
  -  ![checkmark](https://nervous.io/images/green-tick.png) SQS
  -  ![checkmark](https://nervous.io/images/yellow-tick.png) Lambda ([documentation](https://github.com/nervous-systems/eulalie/wiki/eulalie.lambda.util))
+ -  ![checkmark](https://nervous.io/images/yellow-tick.png) Elastic Transcoder
+ -  ![checkmark](https://nervous.io/images/yellow-tick.png) SES
+ -  ![checkmark](https://nervous.io/images/yellow-tick.png) Cognito/Sync, STS
 
 ## Utilities
  - [eulalie.creds](https://github.com/nervous-systems/eulalie/wiki/eulalie.creds) - Retrieval/refreshing of instance-specific IAM role credentials, etc.
