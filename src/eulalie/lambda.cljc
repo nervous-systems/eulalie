@@ -64,11 +64,8 @@
     {:eulalie.lambda/invocation-type invocation-type}))
 
 (defmethod prepare-request :create-function
-  [{:keys [body] :as req}]
-  (assoc req
-    :body (->>
-            body
-            (csk-extras/transform-keys csk/->PascalCaseString))))
+  [req]
+  (update req :body #(csk-extras/transform-keys csk/->PascalCaseString %1)))
 
 (defmethod prepare-request :delete-function
   [req]
