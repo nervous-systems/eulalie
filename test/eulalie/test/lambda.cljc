@@ -1,7 +1,8 @@
 (ns eulalie.test.lambda
   (:require [eulalie.lambda.util :as lu]
             [eulalie.lambda :as l]
-    #?(:clj [clojure.test :refer [testing]]
+    #?(:clj
+            [clojure.test :refer [testing]]
        :cljs [cljs.test :refer-macros [testing]])
             [eulalie.test.common :refer [issue-raw! creds]]
             [glossop.core #?(:clj :refer :cljs :refer-macros) [go-catching <?]]
@@ -10,7 +11,8 @@
             [eulalie.core :as e]
             [clojure.string :as str]
             [camel-snake-kebab.core :as csk]
-            [camel-snake-kebab.extras :as csk-extras]))
+            [camel-snake-kebab.extras :as csk-extras]
+            [eulalie.platform :as platform]))
 
 (def lambda-role-arn (env! "LAMBDA_ROLE_ARN"))
 (def function-zipped "UEsDBAoAAAAAAEBL+0iHxOHaUwAAAFMAAAAHAAAAdGVzdC5qc2V4cG9ydHMuaGFuZGxlciA9IChldmVudCwgY29udGV4dCwgY2FsbGJhY2spID0+IHsgY2FsbGJhY2sobnVsbCwgIkhlbGxvIHdvcmxkIik7IH07UEsBAhQACgAAAAAAQEv7SIfE4dpTAAAAUwAAAAcAAAAAAAAAAAAAAAAAAAAAAHRlc3QuanNQSwUGAAAAAAEAAQA1AAAAeAAAAAAA")
@@ -27,7 +29,8 @@
                     :role lambda-role-arn
                     :runtime "nodejs4.3"}}
         {:keys [body method endpoint]} (e/prepare-req req)]
-    (is (= (->> (cheshire.core/parse-string body true)
+    (is (= (->> body
+                (platform/decode-json)
                 (csk-extras/transform-keys csk/->kebab-case))
            (:body req)))
     (is (str/starts-with? (:host endpoint) "lambda"))
