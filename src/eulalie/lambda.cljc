@@ -35,9 +35,11 @@
 (def versioned-fn-url (into fn-url ["versions" ::version]))
 
 (def target->url
-  {:add-permission [:post (conj versioned-fn-url "policy")]
-   :get-function   [:get  versioned-fn-url]
-   :invoke         [:post (conj fn-url "invocations")]})
+  {:add-permission  [:post (conj versioned-fn-url "policy")]
+   :get-function    [:get  versioned-fn-url]
+   :invoke          [:post (conj fn-url "invocations")]
+   :create-function [:post [service-version "functions"]]
+   :delete-function [:delete fn-url]})
 
 (defmulti prepare-request :target)
 
@@ -60,6 +62,14 @@
       :body payload
       :headers (body->headers body))
     {:eulalie.lambda/invocation-type invocation-type}))
+
+(defmethod prepare-request :create-function
+  [req]
+  (update req :body #(csk-extras/transform-keys csk/->PascalCaseString %1)))
+
+(defmethod prepare-request :delete-function
+  [req]
+  req)
 
 (defn- build-endpoint
   [{:keys [endpoint target] {fn-name :function-name :as body} :body :as req}]
@@ -117,7 +127,7 @@
       response
       {:log-result (some-> headers :x-amz-log-result parse-log-result)})))
 
-(defmethod transform-response-body :get-function [{:keys [body]}]
+(defmethod transform-response-body :default [{:keys [body]}]
   (->> body
        platform/decode-json
        (csk-extras/transform-keys csk/->kebab-case-keyword)))
