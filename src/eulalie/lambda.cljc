@@ -53,7 +53,7 @@
 
 (defmethod prepare-request :get-function
   [{{:keys [function-name]} :body endpoint :endpoint :as req}]
-  (assoc req :body {}))
+  (assoc req :method :get))
 
 (defmethod prepare-request :invoke
   [{{:keys [invocation-type payload] :as body} :body endpoint :endpoint :as req}]
@@ -69,7 +69,7 @@
 
 (defmethod prepare-request :delete-function
   [req]
-  req)
+  (assoc req :method :delete))
 
 (defn- build-endpoint
   [{:keys [endpoint target] {fn-name :function-name :as body} :body :as req}]

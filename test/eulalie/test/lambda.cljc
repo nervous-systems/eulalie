@@ -1,14 +1,23 @@
 (ns eulalie.test.lambda
   (:require [eulalie.lambda :as l]
-            [eulalie.test.common :refer [issue-raw! creds]]
-            [glossop.core #?(:clj :refer :cljs :refer-macros) [go-catching <?]]
+            [eulalie.test.common :refer [creds]]
             [eulalie.test.common #?(:clj :refer :cljs :refer-macros) [deftest is]]
-            [eulalie.util :refer [env!]]
             [eulalie.core :as e]
             [clojure.string :as str]
             [camel-snake-kebab.core :as csk]
             [camel-snake-kebab.extras :as csk-extras]
             [eulalie.platform :as platform]))
+
+(deftest get-function-request-prep
+  (let [function-name "this-is-the-function-name"
+        req {:creds creds
+             :service :lambda
+             :target :get-function
+             :body {:function-name function-name}}
+        {:keys [body method endpoint]} (e/prepare-req req)]
+    (is (= (:path endpoint) (str "/" l/service-version "/functions/" function-name "/versions/HEAD")))
+    (is (str/starts-with? (:host endpoint) "lambda"))
+    (is (= :get method))))
 
 (deftest create-function-request-prep
   (let [function-name "this-is-the-function-name"
@@ -33,7 +42,6 @@
   (let [function-name "this-is-the-function-name"
         req {:creds creds
              :service :lambda
-             :method :delete
              :target :delete-function
              :body {:function-name function-name}}
         {:keys [method endpoint]} (e/prepare-req req)]
