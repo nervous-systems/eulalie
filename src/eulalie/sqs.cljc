@@ -96,14 +96,22 @@
 (defmethod restructure-response :send-message [_ body]
   (x/child-content->map body {:message-id :id :md-5-of-message-body :body-md5}))
 
+(defn attr-type->value-key [type]
+  (case type
+    :string :string-value
+    :number :string-value
+    :binary :binary-value))
+
 (defn message-attr->kv [attr]
   (let [a-name (x/child-content attr :name)
-        {[type value] :value} (x/child attr :value)
-        type (keyword (x/child-content type :data-type))
+        value-container (x/child attr :value)
+        type (keyword (x/child-content value-container :data-type))
         in-type ({:Binary :binary
                   :String :string
-                  :Number :number} type type)]
-    [(keyword a-name) [in-type (x/content value)]]))
+                  :Number :number} type type)
+        value-key (attr-type->value-key in-type)
+        value (x/child-content value-container value-key)]
+    [(keyword a-name) [in-type value]]))
 
 (defn message-attrs->map [message]
   (into {}
