@@ -1,38 +1,37 @@
-(defproject io.nervous/eulalie "0.6.9"
+(defproject io.nervous/eulalie "0.6.10"
   :description "Asynchronous, pure-Clojure AWS client"
   :url "https://github.com/nervous-systems/eulalie"
   :license {:name "Unlicense" :url "http://unlicense.org/UNLICENSE"}
   :scm {:name "git" :url "https://github.com/nervous-systems/eulalie"}
-  :global-vars {*warn-on-reflection* true}
   :source-paths ["src"]
   :dependencies
   [[org.clojure/clojure        "1.8.0"]
-   [org.clojure/clojurescript  "1.8.34"]
-   [org.clojure/core.async     "0.2.374"]
+   [org.clojure/clojurescript  "1.8.51"]
+   [org.clojure/core.async     "0.2.395"]
 
    [io.nervous/glossop         "0.2.1"]
-   [prismatic/plumbing         "0.4.4"]
+   [prismatic/plumbing         "0.5.3"]
 
-   [camel-snake-kebab          "0.3.2"]
+   [camel-snake-kebab          "0.4.0"]
 
    [http-kit                   "2.1.18"]
    [com.cemerick/url           "0.1.1"]
    [cheshire                   "5.5.0"]
    [digest                     "1.4.4"]
-   [clj-time                   "0.11.0"]
+   [clj-time                   "0.12.2"]
    [base64-clj                 "0.1.1"]
 
    [com.andrewmcveigh/cljs-time    "0.4.0"]
    [io.nervous/cljs-nodejs-externs "0.1.0"]]
   :exclusions [[org.clojure/clojure]]
 
-  :node-dependencies [[source-map-support "0.2.8"]
-                      [buffer-crc32       "0.2.5"]
-                      [xml2js             "0.4.9"]]
+  :npm {:dependencies [[source-map-support "0.2.8"]
+                       [buffer-crc32       "0.2.5"]
+                       [xml2js             "0.4.9"]]}
 
-  :plugins [[lein-cljsbuild "1.0.6"]
-            [lein-npm       "0.5.0"]
-            [lein-doo       "0.1.7-SNAPSHOT"]]
+  :plugins [[lein-cljsbuild "1.1.4"]
+            [lein-npm       "0.6.2"]
+            [lein-doo       "0.1.7"]]
 
   :test-selectors {:default (complement :ec2)
                    :ec2 :ec2
