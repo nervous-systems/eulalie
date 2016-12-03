@@ -20,7 +20,6 @@
 
                  [com.andrewmcveigh/cljs-time    "0.4.0"]
                  [io.nervous/cljs-nodejs-externs "0.1.0"]]
-  :npm          {:dependencies [[buffer-crc32 "0.2.5"]]}
   :plugins      [[lein-npm "0.6.0"]
                  [lein-doo "0.1.7"]]
   :cljsbuild

@@ -14,13 +14,12 @@
 (defn- signature-date [offset-msecs]
   (platform.time/from-long (- (platform.time/msecs-now) offset-msecs)))
 
-(defn- get-scope [service {:keys [host]} date]
-  (let [region-name (util.sign/get-region service host)
-        date-stamp  (platform.time/->aws-date date)]
-    (str/join "/" [date-stamp region-name service MAGIC-SUFFIX])))
+(defn- request-scope [req]
+  (let [date-stamp (platform.time/->aws-date (req :date))]
+    (str/join "/" [date-stamp (name (req :region)) (req ::service) MAGIC-SUFFIX])))
 
 (defn- canonical-request
-  [{:keys [method endpoint query-payload? headers] :as req} hash]
+  [{:keys [method endpoint query-payload? headers] :as req}]
   (let [query   (when-not query-payload?
                   (some-> req :query url/map->query))
         headers (into (sorted-map) (map util.sign/canonical-header) headers)]
@@ -32,39 +31,38 @@
       (str/join "\n" (util/join-each ":" headers))
       nil
       (str/join ";" (keys headers))
-      hash)]))
+      (req ::hash))]))
 
-(defn- signable-string [date scope canon-req]
+(defn- signable-string [req]
   (util.sign/newline-join
    ALGORITHM
-   (platform.time/->aws-date-time date)
-   scope
-   (platform.crypto/str->sha256 canon-req)))
+   (platform.time/->aws-date-time (req :date))
+   (req ::scope)
+   (platform.crypto/str->sha256 (req ::canonical))))
 
 (defn- sign-hms256 [s k]
   (platform.crypto/hmac-sha256
    (platform/utf8-bytes s)
    k))
 
-(defn- sign [{:keys [req scope canon-req] :as args}]
+(defn- sign [req]
   (->> req :creds :secret-key (str KEY-PREFIX)
        platform/utf8-bytes
        (sign-hms256 (->  req :date platform.time/->aws-date))
-       (sign-hms256 (->> req :endpoint :host (util.sign/get-region (args :service))))
-       (sign-hms256 (args :service))
+       (sign-hms256 (->> req :endpoint :host (util.sign/host->region (req ::service))))
+       (sign-hms256 (req ::service))
        (sign-hms256 MAGIC-SUFFIX)
-       (sign-hms256 (signable-string (req :date) scope canon-req))
+       (sign-hms256 (signable-string req))
        platform/bytes->hex-str))
 
-(defn- signed-authorization
-  [{:keys [service req] :as args}]
-  (let [scope               (get-scope service (req :endpoint) (req :date))
-        [headers canon-req] (canonical-request req (args :hash))]
+(defn- signed-authorization [req]
+  (let [scope               (request-scope req)
+        [headers canon-req] (canonical-request req)]
     (str
      ALGORITHM " "
      "Credential="    (-> req :creds :access-key (str "/" scope)) ", "
      "SignedHeaders=" (str/join ";" headers) ", "
-     "Signature="     (sign (assoc args :canon-req canon-req :scope scope)))))
+     "Signature="     (sign (assoc req ::canonical canon-req ::scope scope)))))
 
 (defn- required-headers [{:keys [date endpoint creds]}]
   (assoc-when
@@ -73,7 +71,7 @@
    :x-amz-security-token (creds :token)))
 
 (defn aws4
-  [service {:keys [endpoint body date] :as req}]
+  [{:keys [endpoint body date ::service] :as req}]
   (let [date  (or (some-> date platform.time/from-long)
                   (signature-date (req :time-offset 0)))
         req   (-> req
@@ -81,6 +79,6 @@
                   (assoc  :date  date))
         req   (update req :headers merge (required-headers req))
         hash  (platform.crypto/str->sha256 body)
-        auth  (signed-authorization {:service service :hash hash :req req})]
+        auth  (signed-authorization (assoc req ::hash hash))]
     (update req :headers merge {:authorization        auth
                                 :x-amz-content-sha256 hash})))

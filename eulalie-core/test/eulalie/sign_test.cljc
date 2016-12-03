@@ -17,7 +17,9 @@
    :headers  {:content-type   "application/x-amz-json-1.0"
               :x-amz-target   "DynamoDB_20120810.DescribeTable"
               :content-length 26}
-   :method   :post})
+   :method   :post
+   :region   :us-east-1
+   :eulalie.sign/service "dynamodb"})
 
 (def expected-auth
   ["AWS4-HMAC-SHA256"
@@ -26,7 +28,7 @@
     "Signature"     "c8f0aee6b2ab806881b5afd93964c774c9bb60d313c08e4b803e5cc021001bac"}])
 
 (t/deftest aws4 []
-  (let [auth (-> (sign/aws4 "dynamodb" req)
+  (let [auth (-> (sign/aws4 req)
                  :headers
                  :authorization
                  decompose-auth)]
