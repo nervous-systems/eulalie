@@ -1,5 +1,6 @@
 (ns eulalie.service
   (:require [eulalie.sign :as sign]
+            [eulalie.impl.http :as http]
             [eulalie.impl.service :refer [throttling-error?]]
             [promesa.core :as p]))
 
@@ -42,3 +43,7 @@
   ;; After prepare-request, we expect there to be a canonical service name on
   ;; the request, under :eulalie.sign/service e.g. "dynamodb", rather than :dynamo
   (sign/aws4 req))
+
+(defmulti issue-request! req->service-dispatch)
+(defmethod issue-request! :default [req]
+  (http/request! req))

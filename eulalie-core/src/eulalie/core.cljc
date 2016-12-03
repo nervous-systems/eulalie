@@ -5,10 +5,9 @@
             [eulalie.creds         :as creds]
             [taoensso.timbre :as log]
             [promesa.core    :as p]
-            [kvlt.core       :as kvlt]
             [kvlt.util :refer [pprint-str]]))
 
-(defn prepare-req [{:keys [endpoint headers] :as req}]
+(defn- prepare-req [{:keys [endpoint headers] :as req}]
   (let [req  (-> req
                  service/prepare-request
                  (update :endpoint service-util/concretize-port))
@@ -21,8 +20,8 @@
   (and status (<= 200 status 299)))
 
 (defn- parse-error [{:keys [headers body] :as resp}]
-  (if (resp :transport)
-    resp
+  (if (resp ::transport-error?)
+    {:status 0 :type :transport}
     (service-util/decorate-error
      (let [e (service-util/headers->error-type headers)]
        (or (service/transform-response-error (assoc resp :error {:type e}))
@@ -44,17 +43,14 @@
                    :error   error}]
           [:error error])))))
 
-(defn- request! [req]
-  (kvlt/request! (-> req
-                     (dissoc :endpoint)
-                     (assoc :url (str (req :endpoint))))))
-
-(defn issue-retrying! [{:keys [creds] :as req}]
-  (p/alet [creds (p/await (cond-> creds (creds/expired? creds) creds/refresh!))
+(defn- issue-retrying! [{:keys [creds] :as req}]
+  (p/alet [creds (p/await (if (creds/expired? creds)
+                            (creds/refresh! creds)
+                            (p/resolved (creds/resolve creds))))
            req   (assoc req :creds creds)
            req'  (service/sign-request req)]
     (log/debug "Issuing\n" (pprint-str req'))
-    (p/alet [resp   (p/await (request! req'))
+    (p/alet [resp   (p/await (service/issue-request! req'))
              result {:response (-> resp (dissoc :opts) (assoc :request req))
                      :request  req'}
              [label value] (handle-result result)]
@@ -62,14 +58,16 @@
         :ok    (assoc result :body  value)
         :error (assoc result :error value)
         :retry
-        (p/then (value :timeout)
-          (fn [_]
-            (let [req (-> req
-                          (merge (select-keys (value :error) [:time-offset]))
-                          (update ::retries inc))]
-              (issue-retrying! req))))))))
+        (let [{:keys [timeout error]} value]
+          (log/debug "Retrytable error" error
+                     (str "(retries: " (req ::retries)
+                          ", max: " (req :max-retries) ")" ))
+          (p/bind timeout
+            (fn [_]
+              (let [req (-> req
+                            (merge (select-keys error [:time-offset]))
+                            (update ::retries inc))]
+                (issue-retrying! req)))))))))
 
-(defn issue!
-  [{:keys [service creds region] :as req}]
-  (let [req (prepare-req req)]
-    (issue-retrying! (assoc req ::retries 0))))
+(defn issue! [req]
+  (-> req prepare-req (assoc ::retries 0) issue-retrying!))
