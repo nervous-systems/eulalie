@@ -13,7 +13,7 @@
             (-> (do ~@forms)
                 (p/catch (fn [e#]
                            (println (.. e# -stack))
-                           ))
+                           (cljs.test/is (not e#))))
                 (p/then #(done#)))))
         `(t/deftest ~varn
            (deref (do ~@forms))))))

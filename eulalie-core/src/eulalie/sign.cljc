@@ -19,17 +19,19 @@
     (str/join "/" [date-stamp (name (req :region)) (req ::service) MAGIC-SUFFIX])))
 
 (defn- canonical-request
-  [{:keys [method endpoint query-payload? headers] :as req}]
+  [{:keys [endpoint query-payload? headers] :as req}]
   (let [query   (when-not query-payload?
                   (some-> req :query url/map->query))
-        headers (into (sorted-map) (map util.sign/canonical-header) headers)]
+        headers (into (sorted-map) (map util.sign/canonical-header) headers)
+        method  (-> req :method name str/upper-case)
+        path    (-> (:path endpoint) not-empty (or "/"))]
     [(keys headers)
      (util.sign/newline-join
-      (-> method name str/upper-case)
-      (-> (:path endpoint) not-empty (or "/"))
+      method
+      path
       (:query endpoint)
       (str/join "\n" (util/join-each ":" headers))
-      nil
+      ""
       (str/join ";" (keys headers))
       (req ::hash))]))
 

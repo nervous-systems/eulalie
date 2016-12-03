@@ -5,4 +5,3 @@
 
 (t/deftest str->crc32
   (t/is (= (crypto/str->crc32 "\u4dc0") 395713073)))
-

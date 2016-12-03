@@ -28,8 +28,5 @@
     "Signature"     "c8f0aee6b2ab806881b5afd93964c774c9bb60d313c08e4b803e5cc021001bac"}])
 
 (t/deftest aws4 []
-  (let [auth (-> (sign/aws4 req)
-                 :headers
-                 :authorization
-                 decompose-auth)]
+  (let [auth (-> (sign/aws4 req) :headers :authorization decompose-auth)]
     (t/is (= expected-auth auth))))

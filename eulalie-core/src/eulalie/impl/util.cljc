@@ -1,6 +1,5 @@
 (ns eulalie.impl.util
-  (:require [clojure.string :as str]
-            [eulalie.impl.platform.crypto :as platform.crypto]))
+  (:require [clojure.string :as str]))
 
 (defn- not-neg [x]
   (when (< -1 x)
@@ -33,9 +32,3 @@
 
 (defn to-last-match [^String hay ^String needle]
   (or (some->> (str/last-index-of hay needle) not-neg (subs hay 0)) hay))
-
-(defn response-checksum-ok? [{:keys [headers body]}]
-  (let [crc (some-> headers :x-amz-crc32 #? (:clj Long/parseLong :cljs js/parseInt))]
-    (or (not crc)
-        (= (:content-encoding headers) "gzip")
-        (= crc (platform.crypto/str->crc32 body)))))
