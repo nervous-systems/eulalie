@@ -1,4 +1,4 @@
-(ns eulalie.platform
+(ns ^:no-doc eulalie.platform
   #?(:clj  (:require [base64-clj.core :as base64]
                      [cheshire.core   :as json])
      :cljs (:require [eulalie.impl.platform :refer [utf8-bytes]]

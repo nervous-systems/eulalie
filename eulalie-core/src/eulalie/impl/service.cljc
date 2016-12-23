@@ -77,21 +77,20 @@
     "cn-north-1" ".com.cn"
     ".com"))
 
-(defn region->endpoint [region {service :service-name}]
+(defn region->endpoint [region {service :eulalie.sign/service}]
   (url/url (str "https://"
                 (name service) "." (name region)
                 ".amazonaws"
                 (region->tld region))))
 
-(defn default-request [service {:keys [creds] :as req}]
+(defn default-request [{:keys [creds] :as req} service]
   (let [region   (some :region   [req creds service {:region DEFAULT-REGION}])
         endpoint (some :endpoint [req creds])]
-    (merge {:max-retries (service :max-retries)
-            :endpoint    (or (cond-> endpoint
-                               (string? endpoint) url/url)
-                             (region->endpoint region service))
-            :region      region
-            :method      :post} req)))
+    (merge service {:endpoint (or (cond-> endpoint
+                                    (string? endpoint) url/url)
+                                  (region->endpoint region service))
+                    :region   region
+                    :method   :post} req)))
 
 (defn response-checksum-ok? [{:keys [headers body]}]
   (let [crc (some-> headers :x-amz-crc32 #? (:clj Long/parseLong :cljs js/parseInt))]

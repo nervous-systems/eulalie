@@ -7,13 +7,12 @@
 
 (def str->sha256 digest/sha-256)
 
-(def HMAC-SHA256 "HmacSHA256")
-
-(defn hmac-sha256 [bytes k]
-  (.doFinal
-   (doto (Mac/getInstance HMAC-SHA256)
-     (.init (SecretKeySpec. k HMAC-SHA256)))
-   bytes))
+(let [HMAC-SHA256 "HmacSHA256"]
+  (defn hmac-sha256 [bytes k]
+    (.doFinal
+     (doto (Mac/getInstance HMAC-SHA256)
+       (.init (SecretKeySpec. k HMAC-SHA256)))
+     bytes)))
 
 (defn str->crc32 [body]
   (.getValue

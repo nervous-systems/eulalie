@@ -51,7 +51,7 @@
   (->> req :creds :secret-key (str KEY-PREFIX)
        platform/utf8-bytes
        (sign-hms256 (->  req :date platform.time/->aws-date))
-       (sign-hms256 (->> req :endpoint :host (util.sign/host->region (req ::service))))
+       (sign-hms256 (->> req :region))
        (sign-hms256 (req ::service))
        (sign-hms256 MAGIC-SUFFIX)
        (sign-hms256 (signable-string req))

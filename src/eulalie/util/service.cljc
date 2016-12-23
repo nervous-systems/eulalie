@@ -35,11 +35,6 @@
                (- (platform.time/msecs-now)))
       0))
 
-(def throttling-error?
-  #{:throttling
-    :throttling-exception
-    :provisioned-throughput-exceeded-exception})
-
 (def clock-skew-error?
   #{:request-time-too-skewed
     :request-expired
@@ -110,11 +105,11 @@
                 ".amazonaws"
                 (region->tld region))))
 
-(defn default-request [{:keys [max-retries] :as service} {:keys [creds] :as req}]
-  (let [region (some :region [req creds service])
+(defn default-request [{:keys [creds] :as req} {:keys [max-retries] :as service}]
+  (let [region   (some :region [req creds service])
         endpoint (some :endpoint [req creds])]
     (merge {:max-retries max-retries
-            :endpoint (or (cond-> endpoint
-                            (string? endpoint) url/url)
-                          (region->endpoint region service))
-            :method :post} req)))
+            :endpoint    (or (cond-> endpoint
+                              (string? endpoint) url/url)
+                            (region->endpoint region service))
+            :method      :post} req)))

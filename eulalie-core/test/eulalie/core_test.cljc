@@ -10,48 +10,49 @@
 
 (defonce request* (atom identity))
 
-(defmethod service/prepare-request :eulalie.service/test-service [req]
-  (merge {:method :post :max-retries 3 :service-name "testservice"} req))
-(defmethod service/transform-request-body
-  :eulalie.service/test-service [req] (:body req))
-(defmethod service/transform-response-body
-  :eulalie.service/test-service [resp] (:body resp))
-(defmethod service/transform-response-error
-  :eulalie.service/test-service [resp] nil)
+(defmethod service/request-defaults :eulalie.service/test-service [_]
+  (println "OK")
+  {:method               :post
+   :max-retries          3
+   :eulalie.sign/service "testservice"})
 (defmethod service/sign-request
   :eulalie.service/test-service [req] req)
 (defmethod service/issue-request!
   :eulalie.service/test-service [req]
   (@request* req))
 
+(defn- issue! [& [m]]
+  (eulalie/issue!
+   (merge
+    {:endpoint (url/url "http://eulalie.invalid")
+     :body     ""
+     :creds    {}
+     :service  :test-service} m)))
+
 (util/deftest no-retries
-  (reset! request* (fn [_]
-                     (p/resolved
-                      {:status 0 :eulalie.core/transport-error? true})))
-  (p/alet [resp (p/await
-                 (eulalie/issue!
-                  {:endpoint    (url/url "http://eulalie.invalid")
-                   :body        ""
-                   :creds       {}
-                   :max-retries 0
-                   :service     :test-service}))]
+  (defmethod service/issue-request! :eulalie.service/test-service [req]
+    (p/resolved {:status 0 :eulalie.core/transport-error? true}))
+
+  (p/alet [resp (p/await (issue! {:max-retries 0}))]
     (t/is (= :transport (-> resp :error :type)))
     (t/is (zero? (-> resp :request :eulalie.core/retries)))))
 
 (util/deftest retry
   (let [reqs (atom 0)]
-    (reset! request* (fn [req]
-                     (let [reqs (swap! reqs inc)]
-                       (p/resolved {:status (if (= 1 reqs) 500 200)}))))
+    (defmethod service/issue-request! :eulalie.service/test-service [req]
+      (let [reqs (swap! reqs inc)]
+        (p/resolved {:status (if (= 1 reqs) 500 200)})))
 
-    (p/alet [resp (p/await
-                   (eulalie/issue!
-                    {:endpoint    (url/url "http://eulalie.invalid")
-                     :body        ""
-                     :creds       {}
-                     :max-retries 1
-                     :service     :test-service}))]
+    (p/alet [resp (p/await (issue! {:max-retries 1}))]
       (t/is (= 2 @reqs))
       (t/is (= 200 (-> resp :response :status)))
       (t/is (not (resp :error))))))
 
+(util/deftest success
+  (defmethod service/issue-request! :eulalie.service/test-service [req]
+    (p/resolved {:status 200 :body ::impenetrable}))
+
+  (p/alet [resp (p/await (issue!))]
+    (t/is (= ::impenetrable (resp :body)))
+    (t/is (= 200 (-> resp :response :status)))
+    (t/is (not (resp :error)))))
