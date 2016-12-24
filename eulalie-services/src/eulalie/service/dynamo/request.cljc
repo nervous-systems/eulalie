@@ -21,18 +21,23 @@
 (s/def ::attr-value string?)
 
 (s/def ::B    string?)
-(s/def ::BS   (s/coll-of ::B :gen-max 5))
 (s/def ::BOOL boolean?)
-(s/def ::L    (s/coll-of ::attr-value :gen-max 5))
-(s/def ::M    (s/map-of string? ::attr-value :gen-max 5))
+
 (s/def ::N    string?)
-(s/def ::NS   (s/coll-of ::N :gen-max 5))
 (s/def ::NULL boolean?)
 (s/def ::S    string?)
+
+(s/def ::BS   (s/coll-of ::B :gen-max 5))
+(s/def ::NS   (s/coll-of ::N :gen-max 5))
 (s/def ::SS   (s/coll-of ::S :gen-max 5))
 
-;; I thought this could have been something like (s/keys :req-un [(or ::B ::BS
-;; ...)])
+(s/def ::L    (s/coll-of        ::attr-value :gen-max 5))
+(s/def ::M    (s/map-of string? ::attr-value :gen-max 5))
+
+;; Doing this with :req-un [(or ...)] means the generator has to be adjusted (it
+;; creates a map containing all possible keys).  There may be a better way to
+;; get the desired behaviour (require at least one value, generate exactly one
+;; value).
 (s/def ::attr
   (s/or :B    (s/keys :req-un [::B])
         :BS   (s/keys :req-un [::BS])

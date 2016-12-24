@@ -9,14 +9,7 @@
             [eulalie.service.impl.json.mapping :as json.mapping]))
 
 (defn- req-target [prefix {:keys [target]}]
-  (str prefix (csk/->camelCaseString target)))
-
-(defn- prepare-json-request
-  [req {:keys [:eulalie.service.json/target-prefix] :as service-defaults}]
-  (let [req (util.service/default-request req service-defaults)]
-    (update req :headers merge
-            {:content-type "application/x-amz-json-1.0"
-             :x-amz-target (req-target target-prefix req)})))
+  (str prefix (csk/->PascalCaseString target)))
 
 (defn body->error [body]
   (when-let [t (some-> (body :__type)
@@ -30,8 +23,13 @@
 (defmethod service/transform-response-error ::response [resp]
   (some-> resp :body platform/decode-json body->error))
 
-(defmethod service/prepare-request ::request [req]
-  (prepare-json-request req (service/request-defaults req)))
+(defmethod service/prepare-request ::request
+  [{:keys [:eulalie.service.json/target-prefix] :as req}]
+  (-> req
+      (dissoc :eulalie.service.json/target-prefix)
+      (update :headers merge
+              {:content-type "application/x-amz-json-1.0"
+               :x-amz-target (req-target target-prefix req)})))
 
 (defmulti map-response-keys service/resp->service-dispatch)
 (defmulti map-request-keys  service/req->service-dispatch)

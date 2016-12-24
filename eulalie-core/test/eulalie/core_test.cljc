@@ -10,8 +10,7 @@
 
 (defonce request* (atom identity))
 
-(defmethod service/request-defaults :eulalie.service/test-service [_]
-  (println "OK")
+(defmethod service/defaults :eulalie.service/test-service [_]
   {:method               :post
    :max-retries          3
    :eulalie.sign/service "testservice"})

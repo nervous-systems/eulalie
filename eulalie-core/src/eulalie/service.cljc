@@ -51,16 +51,16 @@
 (defn ^:no-doc resp->service-dispatch [{req :request}]
   (req->service-dispatch req))
 
-(defmulti request-defaults
+(defmulti defaults
   "Given a qualified service name, return map of default values to be merged
   into all user requests.  Result may be cached."
   k->service)
-(defmethod request-defaults :default [_] {})
+(defmethod defaults :default [_] {})
 
 (defmulti prepare-request
   "Add service-specific headers to the given request."
   req->service-dispatch)
-(defmethod prepare-request :default [req] () req)
+(defmethod prepare-request :default [req] req)
 
 (defmulti transform-request-body
   "Reduce or reshape any high-level representations in the request's `:body` in

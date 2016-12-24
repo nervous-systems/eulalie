@@ -12,7 +12,7 @@
     :throttling-exception
     :provisioned-throughput-exceeded-exception})
 
-(defn concretize-port [{:keys [protocol port] :as u}]
+(defn explicit-port [{:keys [protocol port] :as u}]
   (if-not (= port -1)
     u
     (assoc u :port

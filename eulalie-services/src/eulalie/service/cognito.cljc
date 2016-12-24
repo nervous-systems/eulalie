@@ -25,7 +25,7 @@
    :credentials                :nest
    :unprocessed-identity-ids   :nest})
 
-(defmethod service/request-defaults :eulalie.service/cognito [_]
+(defmethod service/defaults :eulalie.service/cognito [_]
   {:region                             "us-east-1"
    :eulalie.sign/service               "cognito-identity"
    :eulalie.service.json/target-prefix target-prefix

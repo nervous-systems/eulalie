@@ -9,7 +9,7 @@
 (derive :eulalie.service/dynamo :eulalie.service.generic.json/request)
 (derive :eulalie.service/dynamo :eulalie.service.generic.json/response)
 
-(defmethod service/request-defaults :eulalie.service/dynamo [_]
+(defmethod service/defaults :eulalie.service/dynamo [_]
   {:region                             "us-east-1"
    :eulalie.sign/service               "dynamodb"
    :eulalie.service.json/target-prefix "DynamoDB_20120810."

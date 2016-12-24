@@ -32,16 +32,11 @@
             [promesa.core    :as p]
             [kvlt.util :refer [pprint-str]]))
 
-(defn dgb [x]
-  (println x)
-  x)
 (defn- prepare-req [{:keys [endpoint headers] :as req}]
   (let [req  (-> req
-                 (service-util/default-request (service/request-defaults (req :service)))
-                 dgb
+                 (service-util/default-request (service/defaults (req :service)))
                  service/prepare-request
-                 dgb
-                 (update :endpoint service-util/concretize-port))
+                 (update :endpoint service-util/explicit-port))
         body (service/transform-request-body req)]
     (-> req
         (assoc :body body)
