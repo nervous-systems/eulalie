@@ -50,8 +50,8 @@
 (defn- sign [req]
   (->> req :creds :secret-key (str KEY-PREFIX)
        platform/utf8-bytes
-       (sign-hms256 (->  req :date platform.time/->aws-date))
-       (sign-hms256 (->> req :region))
+       (sign-hms256 (-> req :date platform.time/->aws-date))
+       (sign-hms256 (-> req :region name))
        (sign-hms256 (req ::service))
        (sign-hms256 MAGIC-SUFFIX)
        (sign-hms256 (signable-string req))
@@ -75,7 +75,7 @@
 (defn aws4
   [{:keys [endpoint body date ::service] :as req}]
   (let [date  (or (some-> date platform.time/from-long)
-                  (signature-date (req :time-offset 0)))
+                  (signature-date (req :eulalie.error/time-offset 0)))
         req   (-> req
                   (update :creds util.sign/sanitize-creds)
                   (assoc  :date  date))

@@ -184,7 +184,8 @@
 (s/def ::limit                      (s/int-in 1 100))
 
 (s/def :eulalie.service.dynamo.request.target/list-tables
-  (s/keys :opt-un [::exclusive-start-table-name ::limit]))
+  (-> (s/keys :opt-un [::exclusive-start-table-name ::limit])
+      s/nilable))
 
 (s/def :eulalie.service.dynamo.request.put-item/return-values (enum :NONE :ALL_OLD))
 (s/def ::item (s/map-of ::attr-name ::attr))

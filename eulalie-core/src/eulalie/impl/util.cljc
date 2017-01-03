@@ -1,5 +1,15 @@
 (ns eulalie.impl.util
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [#?(:clj clojure.spec :cljs cljs.spec) :as s]))
+
+(s/def :eulalie.creds/access-key string?)
+(s/def :eulalie.creds/secret-key string?)
+(s/def :eulalie.creds/token      (s/nilable string?))
+(s/def :eulalie.creds/expiration (s/nilable number?))
+
+(s/def :eulalie.creds/map
+  (s/keys :req-un [:eulalie.creds/access-key :eulalie.creds/secret-key]
+          :opt-un [:eulalie.creds/token :eulalie.creds/expiration]))
 
 (defn- not-neg [x]
   (when (< -1 x)

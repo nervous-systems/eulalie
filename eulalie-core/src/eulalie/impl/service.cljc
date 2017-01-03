@@ -3,7 +3,8 @@
             [eulalie.impl.sign :refer [DEFAULT-REGION]]
             [eulalie.impl.platform.crypto :as platform.crypto]
             [eulalie.impl.util :as util]
-            [cemerick.url :as url]
+            [eulalie.creds     :as creds]
+            [cemerick.url      :as url]
             [camel-snake-kebab.core :as csk :refer [->kebab-case-keyword]]
             [camel-snake-kebab.extras :refer [transform-keys]]))
 
@@ -40,10 +41,7 @@
     :signature-does-not-match})
 
 (defn retry? [status {:keys [transport type]}]
-  (or transport
-      (= status 500)
-      (= status 503)
-      (throttling-error? type)
+  (or transport (= status 500) (= status 503) (throttling-error? type)
       (clock-skew-error? type)))
 
 (defn headers->error-type [m]
@@ -57,7 +55,7 @@
 
 (defn decorate-error [{:keys [type] :as e} resp]
   (if (clock-skew-error? type)
-    (assoc e :time-offset (parse-clock-skew resp))
+    (assoc e :eulalie.error/time-offset (parse-clock-skew resp))
     e))
 
 (def ->camel-k csk/->PascalCaseKeyword)
@@ -84,11 +82,13 @@
                 (region->tld region))))
 
 (defn default-request [{:keys [creds] :as req} service]
-  (let [region   (some :region   [req creds service {:region DEFAULT-REGION}])
-        endpoint (some :endpoint [req creds])]
-    (merge service {:endpoint (or (cond-> endpoint
-                                    (string? endpoint) url/url)
-                                  (region->endpoint region service))
+  (let [creds    (or creds (creds/default))
+        region   (some :region   [req creds service {:region DEFAULT-REGION}])
+        endpoint (some :endpoint [req creds service])
+        endpoint (or (cond-> endpoint (string? endpoint) url/url)
+                     (region->endpoint region service))]
+    (merge service {:creds    creds
+                    :endpoint endpoint
                     :region   region
                     :method   :post} req)))
 

@@ -32,7 +32,7 @@
 
 (defmethod generic.json/map-request-keys :eulalie.service/dynamo
   [{:keys [body target]}]
-  (json.mapping/transform-request body key-types/request-key-types))
+  (json.mapping/transform-request (or body {}) key-types/request-key-types))
 
 (defmethod generic.json/map-response-keys :eulalie.service/dynamo [{:keys [body]}]
   (json.mapping/transform-response body key-types/response-key-types))

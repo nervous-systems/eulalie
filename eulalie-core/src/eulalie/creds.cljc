@@ -8,7 +8,8 @@
   user.  [[eulalie.core/issue!]] will observe these values over those supplied
   by the service implementation, however they may be overriden by supplying the
   same keys on individual requests."
-  (:require [eulalie.impl.platform :as platform]
+  (:require [#?(:clj clojure.spec :cljs cljs.spec) :as s]
+            [eulalie.impl.platform :as platform]
             [eulalie.impl.util :refer [assoc-when]]
             [eulalie.impl.platform.time :as platform.time]
             [eulalie.instance-data :as instance-data]
@@ -32,6 +33,8 @@
         :access-key access-key}
        :token (not-empty (platform/env :AWS_SESSION_TOKEN))))))
 
+(s/fdef env :ret :eulalie.creds/map)
+
 (defprotocol Credentials
   (refresh! [this] "Return a promise resolving to a credentials map.")
   (expired? [this] "Boolean indicating whether the underlying credentials remain valid.")
@@ -46,6 +49,8 @@
     false)
   (resolve [this]
     this))
+
+(s/def ::credentials (partial satisfies? Credentials))
 
 (defrecord ExpiringCredentials [threshold creds refresh!]
   Credentials
@@ -71,3 +76,12 @@
   [& [{:keys [role threshold] :or {threshold INSTANCE-CREDS-THRESHOLD}}]]
   (let [refresh! #(instance-data/iam-credentials! role)]
     (expiring threshold refresh!)))
+
+(s/fdef instance :ret ::credentials)
+
+(defn default
+  "Return either [[env]] credentials, if set, or [[instance]] credentials."
+  []
+  (or (env) (instance)))
+
+(s/fdef default :ret (s/or :map ::map :credentials ::credentials))

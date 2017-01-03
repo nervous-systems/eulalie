@@ -5,23 +5,23 @@
             [eulalie.platform       :as platform]
             [eulalie.impl.service   :as util.service]
             [taoensso.timbre        :as log]
-            [#?(:clj clojure.spec :cljs cljs.spec) :as s]
             [eulalie.service.impl.json.mapping :as json.mapping]))
 
 (defn- req-target [prefix {:keys [target]}]
   (str prefix (csk/->PascalCaseString target)))
 
-(defn body->error [body]
+(defn body->error [body service]
   (when-let [t (some-> (body :__type)
                        not-empty
                        (util/from-last-match "#")
-                       csk/->kebab-case-keyword)]
-    {:type t :message (or (body :Message)
-                          (body :message)
-                          "Generic: no remote error message")}))
+                       csk/->kebab-case-string)]
+    {:eulalie.error/type (keyword (str (namespace service) "." (name service)) t)
+     :eulalie.error/message (or (body :Message) (body :message)
+                                "Generic: no remote error message")}))
 
 (defmethod service/transform-response-error ::response [resp]
-  (some-> resp :body platform/decode-json body->error))
+  (let [service (service/resp->service-dispatch resp)]
+    (some-> resp :body platform/decode-json (body->error service))))
 
 (defmethod service/prepare-request ::request
   [{:keys [:eulalie.service.json/target-prefix] :as req}]
@@ -41,14 +41,6 @@
   (json.mapping/transform-response body {}))
 
 (defmethod service/transform-request-body ::request [{:keys [target body] :as req}]
-  (let [ns     (str "eulalie.service." (name (req :service)) ".request.target")
-        target (keyword ns (name target))]
-    (if-let [spec (s/get-spec target)]
-      (when-not (s/valid? spec body)
-        (s/assert spec body)
-        (log/warn "Request validation failed for" target (s/explain-data spec body)))
-      (log/warn "No spec found for target" target " - skipping validation")))
-
   (platform/encode-json (map-request-keys req)))
 
 (defmethod service/transform-response-body ::response [{:keys [body] :as resp}]

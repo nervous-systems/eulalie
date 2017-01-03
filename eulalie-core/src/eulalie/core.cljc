@@ -6,12 +6,13 @@
   Request maps are required to have keys:
 
   - `:service` (keyword), used for method dispatch in [[eulalie.service]].  The
-  namespace containing the method definitions must be loaded, even if not used
-  directly.
-  - `:creds` (map or [[eulalie.creds/Credentials]] implementation).
+  namespace containing the appropriate method definitions must be loaded, even
+  if not used directly.  Services may be bare (`:dynamo`) or
+  namespaced (`:eulalie.service/dynamo`).
 
   Optional keys used to override the service's defaults:
-
+  - `:creds` (map or [[eulalie.creds/Credentials]] implementation), defaulting
+  to [[eulalie.creds/default]].
   - `:max-retries` (number), maximum number of times a request will be replayed
   if the remote service returns a retryable error.
   - `:endpoint` (`cemerick.url/url`) identifies the remote service endpoint,
@@ -46,12 +47,13 @@
   (and status (<= 200 status 299)))
 
 (defn- parse-error [{:keys [headers body] :as resp}]
-  (if (resp ::transport-error?)
-    {:status 0 :type :transport}
+  (if (resp :eulalie.error/transport?)
+    {:eulalie.error/status 0 :eulalie.error/type :transport}
     (service-util/decorate-error
      (let [e (service-util/headers->error-type headers)]
-       (or (service/transform-response-error (assoc resp :error {:type e}))
-           {:type (or e :unrecognized)}))
+       (or (service/transform-response-error
+            (assoc resp :error {:eulalie.error/type e}))
+           {:eulalie.error/type (or e :unrecognized)}))
      resp)))
 
 (defn- handle-result
@@ -59,7 +61,7 @@
     req      :request :as result}]
 
   (if-not (service-util/response-checksum-ok? aws-resp)
-    [:error {:type :crc32-mismatch}]
+    [:error {:eulalie.error/type :crc32-mismatch}]
     (if (ok? aws-resp)
       [:ok (service/transform-response-body aws-resp)]
       (let [error (parse-error aws-resp)]
@@ -83,8 +85,8 @@
       (case label
         :ok    (assoc result :body  value)
         :error
-        (let [{:keys [type message]} value]
-          (throw (ex-info (or message (name type)) (assoc result :error value))))
+        (let [{:keys [eulalie.error/type eulalie.error/message]} value]
+          (throw (ex-info (or message (name type)) (merge result value))))
         :retry
         (let [{:keys [timeout error]} value]
           (log/debug "Retrytable error" error
@@ -93,7 +95,7 @@
           (p/bind timeout
             (fn [_]
               (let [req (-> req
-                            (merge (select-keys error [:time-offset]))
+                            (merge (select-keys error [:eulalie.error/time-offset]))
                             (update ::retries inc))]
                 (issue-retrying! req)))))))))
 

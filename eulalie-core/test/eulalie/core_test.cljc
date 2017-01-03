@@ -30,11 +30,15 @@
 
 (util/deftest no-retries
   (defmethod service/issue-request! :eulalie.service/test-service [req]
-    (p/resolved {:status 0 :eulalie.core/transport-error? true}))
+    (p/resolved {:status 0 :eulalie.error/transport? true}))
 
-  (p/alet [resp (p/await (issue! {:max-retries 0}))]
-    (t/is (= :transport (-> resp :error :type)))
-    (t/is (zero? (-> resp :request :eulalie.core/retries)))))
+  (p/alet [[tag e] (p/await (-> (issue! {:max-retries 0})
+                                (p/branch
+                                  (fn [m] [:ok m])
+                                  (fn [e] [:error e]))))]
+    (t/is (= tag :error))
+    (t/is (= :transport (-> e ex-data :eulalie.error/type)))
+    (t/is (zero? (-> e ex-data :request :eulalie.core/retries)))))
 
 (util/deftest retry
   (let [reqs (atom 0)]

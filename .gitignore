@@ -10,3 +10,4 @@ pom.xml.asc
 out
 src/eulalie/externs/node-stdlib
 /repl.clj
+node_modules

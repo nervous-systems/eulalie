@@ -67,7 +67,7 @@
   accordance with the expectations of the remote service.  Returns the `:body`
   only."
   req->service-dispatch)
-(defmethod prepare-request :default [req] (req :body))
+(defmethod transform-request-body :default [req] (req :body))
 
 (defmulti transform-response-body
   "Reshape the response's `:body` (as received from the remote service) into
@@ -78,7 +78,7 @@
 
 (defmulti transform-response-error
   "Takes a response map and returns its `:error` map (required to contain a
-  `:type` keyword key), transforming it as necessary."
+  `:eulalie.error/type` keyword key), transforming it as necessary."
   resp->service-dispatch)
 (defmethod transform-response-error :default [resp]
   (resp :error))

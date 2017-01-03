@@ -10,4 +10,4 @@
       (p/catch
         (fn [e]
           (let [{:keys [status] :as e} (ex-data e)]
-            (assoc e :eulalie.core/transport-error? (= status 0)))))))
+            (assoc e :eulalie.error/transport? (= status 0)))))))
