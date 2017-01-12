@@ -1,4 +1,4 @@
-(ns eulalie.sign
+(ns ^:no-doc eulalie.sign
   (:require [eulalie.impl.sign :as util.sign]
             [eulalie.impl.util :as util :refer [assoc-when]]
             [eulalie.impl.platform.time :as platform.time]

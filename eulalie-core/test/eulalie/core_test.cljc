@@ -1,24 +1,21 @@
 (ns eulalie.core-test
-  (:require [eulalie.core      :as eulalie]
-            [eulalie.impl.http :as http]
-            [cemerick.url      :as url]
-            [eulalie.service   :as service]
-            [eulalie.test-util :as util]
-            [promesa.core      :as p]
+  (:require [eulalie.core       :as eulalie]
+            [cemerick.url       :as url]
+            [eulalie.service    :as service]
+            [promesa-check.util :as util]
+            [promesa.core       :as p]
             #?(:clj  [clojure.test :as t]
                :cljs [cljs.test :as t :include-macros true])))
 
-(defonce request* (atom identity))
+(taoensso.timbre/merge-config! {:level :warn})
 
 (defmethod service/defaults :eulalie.service/test-service [_]
   {:method               :post
    :max-retries          3
    :eulalie.sign/service "testservice"})
+
 (defmethod service/sign-request
   :eulalie.service/test-service [req] req)
-(defmethod service/issue-request!
-  :eulalie.service/test-service [req]
-  (@request* req))
 
 (defn- issue! [& [m]]
   (eulalie/issue!

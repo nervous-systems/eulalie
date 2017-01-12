@@ -42,7 +42,7 @@
 
 (extend-type #?(:clj  clojure.lang.PersistentArrayMap
                 :cljs cljs.core.PersistentArrayMap)
-  Credentials
+    Credentials
   (refresh! [this]
     (p/resolved this))
   (expired? [this]
@@ -50,7 +50,7 @@
   (resolve [this]
     this))
 
-(s/def ::credentials (partial satisfies? Credentials))
+(s/def ::credentials #(satisfies? % Credentials))
 
 (defrecord ExpiringCredentials [threshold creds refresh!]
   Credentials

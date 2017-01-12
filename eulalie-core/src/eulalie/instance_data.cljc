@@ -30,24 +30,19 @@
   (let [path (cond-> path (not (coll? path)) vector)
         url  (str "http://" host ":80/" (str/join "/" (map name path)))]
     (p/then
-     (kvlt/request! {:url url :as (if parse-json? :json :string)})
-     (fn [resp]
-       (cond->> (resp :body)
-         parse-json? (csk-extras/transform-keys csk/->kebab-case-keyword))))))
+      (kvlt/request! {:url url :as (if parse-json? :json :string)})
+      (fn [resp]
+        (cond->> (resp :body)
+          parse-json? (csk-extras/transform-keys csk/->kebab-case-keyword))))))
 
 (doc/with-doc-examples! retrieve!
   [(retrieve [:latest :dynamic :instance-identity :document] {:parse-json? true})])
-
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[retrieve!]]"}
-          retrieve!! (comp deref retrieve!)))
 
 (defn metadata!
   "Trivial wrapper around [[retrieve!]] which prefixes `path` with
   `[:latest :meta-data]`."
   [path & [args]]
   (retrieve! (flatten (conj [:latest :meta-data] path)) args))
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[metadata!]]"}
-          metadata!! (comp deref metadata!)))
 
 (doc/with-doc-examples! metadata!
   [(metadata! [:iam :security-credentials])])
@@ -59,8 +54,6 @@
   (retrieve!
    (flatten (conj [:latest :dynamic :instance-identity] path))
    args))
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[instance-identity!]]"}
-          instance-identity!! (comp deref instance-identity!)))
 
 (doc/with-doc-examples! instance-identity!
   [(instance-identity! :document {:parse-json? true})])
@@ -73,18 +66,12 @@
     (fn [m]
       (get m (keyword k)))))
 
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[identity-key!]]"}
-          identity-key!! (comp deref identity-key!)))
-
 (defn default-iam-role!
   "Returns the string name of the instance's default IAM role, or `nil`."
   [& [args]]
   (p/then (metadata! [:iam :security-credentials] args)
     (fn [s]
       (some-> s (util/to-first-match "\n")))))
-
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[default-iam-role!]]"}
-          default-iam-role!! (comp deref default-iam-role!)))
 
 (let [seconds-formatter (time.format/formatters :date-time-no-ms)]
   (defn- from-iso-seconds [x]
@@ -107,5 +94,3 @@
     (if role
       (cont role)
       (p/then (default-iam-role!) cont))))
-#?(:clj (def ^{:doc "Clojure-only, blocking implementation of [[iam-credentials!]]"}
-          iam-credentials!! (comp deref iam-credentials!)))

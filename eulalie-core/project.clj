@@ -14,5 +14,5 @@
                  [com.andrewmcveigh/cljs-time    "0.4.0"]
                  [io.nervous/cljs-nodejs-externs "0.1.0"]]
   :plugins      [[lein-modules "0.3.11"]]
-  :codox         {:source-uri ~(str "https://github.com/nervous-systems/eulalie/"
-                                    "eulalie-core/blob/master/{filepath}#L{line}")})
+  :codox        {:source-uri ~(str "https://github.com/nervous-systems/eulalie/"
+                                   "eulalie-core/blob/master/{filepath}#L{line}")})

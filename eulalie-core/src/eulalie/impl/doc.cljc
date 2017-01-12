@@ -1,7 +1,8 @@
 (ns eulalie.impl.doc
   (:require [clojure.string :as str]
-            #? (:clj  [clojure.pprint :as pprint]
-                :cljs [cljs.pprint :as pprint])))
+            #?(:clj  [clojure.pprint :as pprint]
+               :cljs [cljs.pprint :as pprint]))
+  #?(:cljs (:require-macros [eulalie.impl.doc])))
 
 (defn pprint-str [x]
   (str/trimr (with-out-str (pprint/pprint x))))

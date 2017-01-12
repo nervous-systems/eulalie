@@ -3,21 +3,54 @@
                      [cheshire.core   :as json])
      :cljs (:require [eulalie.impl.platform :refer [utf8-bytes]]
                      [eulalie.impl.platform.util :as platform.util]
-                     [goog.crypt.base64 :as base64])))
+                     [goog.crypt.base64 :as base64]
+                     [clojure.walk      :as walk]
+                     [clojure.string    :as str])))
 
 (defn encode-base64 [x]
   #? (:clj  (base64/encode x)
       :cljs (base64/encodeByteArray (utf8-bytes x))))
 
 (defn decode-base64 [x]
-  #? (:clj  (base64/decode x)
+  #? (:clj  (if (empty? x)
+              x
+              (base64/decode x))
       :cljs (platform.util/bytes->string
              (base64/decodeStringToByteArray x))))
 
-(defn encode-json [x]
-  #? (:clj  (json/encode x)
-      :cljs (js/JSON.stringify (clj->js x))))
+#?(:cljs
+   (defn- stringify-kv [[k v]]
+     (if-not (keyword? k)
+       [k v]
+       (if-let [ns (namespace k)]
+         [(str ns "/" (name k)) v]
+         [(name k) v]))))
 
-(defn decode-json [x]
+(defn encode-json
+  "Encode with namespace aware (i.e. include namespace) key stringication."
+  [x]
+  #? (:clj (json/encode x)
+      :cljs
+      (let [stringed (clojure.walk/postwalk
+                      (fn [form]
+                        (if (map? form)
+                          (into {} (map stringify-kv form))
+                          form))
+                      x)]
+        (js/JSON.stringify (clj->js stringed)))))
+
+#?(:cljs
+   (defn- keywordize-kv [[k v]]
+     (if (str/index-of k "/")
+       [(apply keyword (str/split k #"/" 2)) v]
+       [(keyword k) v])))
+
+(defn decode-json "Decode w/ namespace-aware key keywordization"
+  [x]
   #? (:clj  (json/decode x keyword)
-      :cljs (js->clj (js/JSON.parse x) :keywordize-keys true)))
+      :cljs (clojure.walk/postwalk
+             (fn [form]
+               (if (map? form)
+                 (into {} (map keywordize-kv form))
+                 form))
+             (js->clj (js/JSON.parse x)))))

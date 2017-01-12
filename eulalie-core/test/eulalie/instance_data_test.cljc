@@ -6,8 +6,7 @@
                :cljs [cljs.test :as t :include-macros true])
             [promesa.core :as p]
             [promesa.impl.proto :refer [IPromise]]
-            [clojure.string :as str]
-            [eulalie.test-util :as util]))
+            [promesa-check.util :as util]))
 
 (def creds-path       "/latest/meta-data/iam/security-credentials")
 (def expiration-stamp "2012-04-27T22:39:16Z")
@@ -18,10 +17,10 @@
                                 (reify IPromise
                                   (-map [_ cb]
                                     (cb {:body req}))))]
-   (t/testing "Text"
-     (let [req (data/retrieve! [:latest :dynamic :xyz])]
-       (t/is (= (-> req :url url :path) "/latest/dynamic/xyz"))
-       (t/is (not= (req :as) :json))))
+    (t/testing "Text"
+      (let [req (data/retrieve! [:latest :dynamic :xyz])]
+        (t/is (= (-> req :url url :path) "/latest/dynamic/xyz"))
+        (t/is (not= (req :as) :json))))
     (t/testing "JSON"
       (t/is (= :json (-> (data/retrieve! [:xyz] {:parse-json? true}) :as))))))
 
@@ -36,18 +35,14 @@
         (t/is (= "the-role" ))))))
 
 (util/deftest iam-credentials
-  (with-redefs
-    [data/retrieve!
-     (fn [path & _]
-       (t/is (= path [:latest :meta-data :iam :security-credentials "some-role"]))
-       (p/resolved
-        {:access-key-id     "access-key"
-         :secret-access-key "secret-key"
-         :token             "the-token"
-         :expiration        expiration-stamp}))]
-    (p/then (data/iam-credentials! "some-role")
-      (fn [creds]
-        (t/is (= creds {:access-key "access-key"
-                        :secret-key "secret-key"
-                        :token      "the-token"
-                        :expiration expiration}))))))
+  (let [creds {:access-key-id     "access-key"
+               :secret-access-key "secret-key"
+               :token             "the-token"}]
+    (with-redefs
+      [data/retrieve!
+       (fn [path & _]
+         (t/is (= path [:latest :meta-data :iam :security-credentials "some-role"]))
+         (p/resolved (assoc creds :expiration expiration-stamp)))]
+      (p/then (data/iam-credentials! "some-role")
+        (fn [creds]
+          (t/is (= creds (assoc creds :expiration expiration))))))))

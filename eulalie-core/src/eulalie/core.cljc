@@ -7,14 +7,16 @@
 
   - `:service` (keyword), used for method dispatch in [[eulalie.service]].  The
   namespace containing the appropriate method definitions must be loaded, even
-  if not used directly.  Services may be bare (`:dynamo`) or
+  if not used directly.  Bare service names (e.g. `:dynamo`) will be
   namespaced (`:eulalie.service/dynamo`).
 
   Optional keys used to override the service's defaults:
+
   - `:creds` (map or [[eulalie.creds/Credentials]] implementation), defaulting
   to [[eulalie.creds/default]].
   - `:max-retries` (number), maximum number of times a request will be replayed
-  if the remote service returns a retryable error.
+  if the remote service returns a retryable error
+.
   - `:endpoint` (`cemerick.url/url`) identifies the remote service endpoint,
   Will override both the value specified in `:creds`, if any, and the service's
   default endpoint.

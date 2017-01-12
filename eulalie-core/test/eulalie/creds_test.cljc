@@ -1,11 +1,10 @@
 (ns eulalie.creds-test
   (:require [eulalie.creds :as creds]
             [eulalie.impl.platform.time :as platform.time]
-            [eulalie.instance-data :refer [iam-credentials!]]
             [promesa.core :as p]
             #?(:clj  [clojure.test :as t]
                :cljs [cljs.test :as t :include-macros true])
-            [eulalie.test-util :as util]))
+            [promesa-check.util :as util]))
 
 (util/deftest expiring
   (let [creds-map {:access-key "xyz" :secret-key "abc" :expiration 2}
