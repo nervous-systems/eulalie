@@ -1,5 +1,6 @@
 (ns eulalie.service.dynamo-test
-  (:require [eulalie.service.dynamo]
+  (:require #?(:cljs [clojure.test.check])
+            [eulalie.service.dynamo]
             [eulalie.service.test.util :as test.util]
             [eulalie.service.dynamo.test.common :refer [targets]]
             [clojure.test.check.clojure-test :as ct]))

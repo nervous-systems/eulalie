@@ -1,22 +1,8 @@
 language: clojure
-sudo: required
-dist: trusty
+sudo:     required
+dist:     trusty
 jdk:
-  - oraclejdk8
+- oraclejdk8
 before_install:
-    - wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein && chmod +x lein
-    - wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz
-    - tar xzf dynamodb_local_latest.tar.gz
-    - java -jar DynamoDBLocal.jar &
-script: ./lein test && ./lein doo node test-none once
-env:
-    global:
-        - LOCAL_DYNAMO_URL=http://localhost:8000
-        - AWS_ACCOUNT_ID=510355070671
-        - COGNITO_IDENTITY_POOL_ID=us-east-1:962ec7c8-3fcd-4abb-818f-749e44432b2c
-        - COGNITO_DEVELOPER_PROVIDER_NAME=org.eulalie
-        - COGNITO_ROLE_ARN=arn:aws:iam::510355070671:role/Cognito_eulalieAuth_Role
-        - COGNITO_IDENTITY_ID=us-east-1:56b06ae2-bef9-4c3b-9b47-37c7c9d55
-        - secure: "t/KIUqG9oZtIMjSVo3wTFjOhr+gC7sssB75s3BSL3NW67ZG7Oo8sM1akJidgbVWuxvwCZBcSGZdWwo/8XZmE1W9FsTorhot5RhyOJw3DEknRTJ9fGPxFFSpyWE5YT4koMPG+rHUTjtmnnBvsLQ1Na0vFvymvlogmKBDZ+H398I8="
-        - secure: "LHjpFUXfR1LkU4dUrHqi7md+t8MlkPTxSayk/LAgsRmvz7n4fdoJyqRkXRnhNQWrJ8FTyj1b3nWyagr3JfQ3ob98rI36O1qOh3dkcEsEHWfzSd2OTVXSt6J5vwPkJIRGqjcctPw/tYwE2YynqLXGirts6lZv76mJDB1j/HI0A1s="
-        - secure: "iM7UegHHWulIUP0x1Xd6V15yajHRKpq8ZDOF8VrPhXja8R7LHN8uxkKUzsVdtmHDhropl4fVUffmxLM4/9ivR5I7sLgDAR9NNktZ4eqQhKv47jfIl/HMulYug+pc1T4+/4LGHpFA3btlw+BRjvB7h3w5KTMWvs0vmKpGcvfbhlE="
+- wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein && chmod +x lein
+script: ./lein modules test && ./lein modules doo node test-none once

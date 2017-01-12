@@ -1,15 +1,7 @@
 (ns ^:no-doc eulalie.service.cognito.request
   (:require [#?(:clj clojure.spec :cljs cljs.spec) :as s]
-            [#?(:clj clojure.spec.gen :cljs cljs.spec.impl.gen) :as gen]))
-
-(defn- string* [chars min-len & [max-len]]
-  (let [regex (re-pattern (str "(?i)" chars "{" min-len "," max-len "}"))]
-   (s/with-gen (fn [s]
-                 (and (string? s) (re-matches regex s)))
-     (fn []
-       (gen/fmap
-        #(apply str %)
-        (gen/vector (gen/char-alphanumeric min-len max-len)))))))
+            [#?(:clj clojure.spec.gen :cljs cljs.spec.impl.gen) :as gen]
+            [eulalie.service.impl.spec :refer [string*]]))
 
 (s/def ::client-id          string?)
 (s/def ::provider-name      (string* "[\\w._-]" 1  128))
