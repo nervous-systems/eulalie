@@ -3,7 +3,8 @@
             [eulalie.service.cognito :as cognito]
             [eulalie.service.cognito.request]
             [eulalie.service.test.util :as test.util]
-            [clojure.test.check.clojure-test :as ct]))
+            [clojure.test.check.clojure-test
+             #?(:clj :refer :cljs :refer-macros) [defspec]]))
 
 (def targets
   [:create-identity-pool :delete-identities :delete-identity-pool :describe-identity
@@ -13,5 +14,5 @@
    :set-identity-pool-roles :unlink-developer-identity :unlink-identity
    :update-identity-pool])
 
-(ct/defspec req+resp 250
+(defspec req+resp #?(:clj 250 :cljs 50)
   (test.util/request-roundtrip-property :cognito targets))

@@ -31,7 +31,7 @@
   [x]
   #? (:clj (json/encode x)
       :cljs
-      (let [stringed (clojure.walk/postwalk
+      (let [stringed (walk/postwalk
                       (fn [form]
                         (if (map? form)
                           (into {} (map stringify-kv form))
@@ -48,7 +48,7 @@
 (defn decode-json "Decode w/ namespace-aware key keywordization"
   [x]
   #? (:clj  (json/decode x keyword)
-      :cljs (clojure.walk/postwalk
+      :cljs (walk/postwalk
              (fn [form]
                (if (map? form)
                  (into {} (map keywordize-kv form))

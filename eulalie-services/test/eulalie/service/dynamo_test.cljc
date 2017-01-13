@@ -3,7 +3,8 @@
             [eulalie.service.dynamo]
             [eulalie.service.test.util :as test.util]
             [eulalie.service.dynamo.test.common :refer [targets]]
-            [clojure.test.check.clojure-test :as ct]))
+            [clojure.test.check.clojure-test
+             #?(:clj :refer :cljs :refer-macros) [defspec]]))
 
-(ct/defspec req+resp 100
+(defspec req+resp #?(:clj 100 :cljs 20)
   (test.util/request-roundtrip-property :dynamo targets))

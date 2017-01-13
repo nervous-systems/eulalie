@@ -7,12 +7,12 @@
             [eulalie.service.test.util :refer [gen-request]]
             [eulalie.core :as eulalie]
             [promesa-check.util :as t]
-            [promesa-check.core :as pc]
+            [promesa-check.core #?(:clj :refer :cljs :refer-macros) [defspec]]
             [promesa.core :as p]))
 
 (taoensso.timbre/merge-config! {:level :warn})
 
-(pc/defspec issue 50
+(defspec issue 50
   (prop/for-all* [(gen-request :dynamo targets)]
     (fn [[target body]]
       (defmethod service/issue-request! :eulalie.service/dynamo [req]

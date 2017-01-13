@@ -1,8 +1,18 @@
 language: clojure
-sudo:     required
-dist:     trusty
+sudo: required
+dist: trusty
+addons:
+  firefox: latest
 jdk:
-- oraclejdk8
+  - oraclejdk8
+env:
+  global:
+    - CHROME_BIN=chromium-browser
+    - DISPLAY=:99.0
 before_install:
-- wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein && chmod +x lein
-script: ./lein modules test && ./lein modules doo node test-none once
+  - nvm install 5
+  - npm install -g karma karma-cli karma-chrome-launcher karma-firefox-launcher karma-cljs-test
+  - sh -e /etc/init.d/xvfb start
+  - wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein -O /usr/local/bin/lein
+  - chmod +x /usr/local/bin/lein
+script: bin/travis.sh

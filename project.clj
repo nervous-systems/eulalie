@@ -1,7 +1,7 @@
 (defproject io.nervous/eulalie-container "0.1.0-SNAPSHOT"
   :description "Asynchronous, pure-Clojure AWS client"
   :profiles    {:dev {:dependencies [[io.nervous/codox-nervous-theme "0.1.0"]
-                                     [io.nervous/promesa-check "0.1.0-SNAPSHOT"]]}}
+                                     [io.nervous/promesa-check "0.1.0"]]}}
   :modules
   {:inherited
    {:dependencies
@@ -18,11 +18,18 @@
               [lein-codox     "0.10.2"]
               [lein-cljsbuild "1.1.5"]]
     :cljsbuild
-    {:builds [{:id "test-none"
-               :source-paths ["src" "test"]
-               :compiler {:output-to     "target/test-none/eulalie-test.js"
-                          :output-dir    "target/test-none"
-                          :target        :nodejs
-                          :optimizations :none
-                          :main          eulalie.test.runner}}]}}}
+    {:builds {:generic {:source-paths ["src" "test"]
+                        :compiler {:output-to     "target/generic/eulalie-test.js"
+                                   :output-dir    "target/generic"
+                                   :optimizations :none
+                                   :language-in   :ecmascript5
+                                   :language-out  :ecmascript5
+                                   :pretty-print  true
+                                   :main          eulalie.test.runner}}
+              :node    {:source-paths ["src" "test"]
+                        :compiler {:output-to     "target/node/eulalie-test.js"
+                                   :output-dir    "target/node"
+                                   :target        :nodejs
+                                   :optimizations :none
+                                   :main          eulalie.test.runner}}}}}}
   :plugins [[lein-modules "0.3.11"]])
