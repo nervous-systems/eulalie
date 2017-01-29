@@ -9,12 +9,22 @@
   by the service implementation, however they may be overriden by supplying the
   same keys on individual requests."
   (:require [#?(:clj clojure.spec :cljs cljs.spec) :as s]
+            [#?(:clj clojure.spec.gen :cljs cljs.spec.impl.gen) :as gen]
             [eulalie.impl.platform :as platform]
             [eulalie.impl.util :refer [assoc-when]]
             [eulalie.impl.platform.time :as platform.time]
             [eulalie.instance-data :as instance-data]
             [promesa.core :as p])
   (:refer-clojure :exclude [resolve]))
+
+(s/def ::access-key string?)
+(s/def ::secret-key string?)
+(s/def ::token      (s/nilable string?))
+(s/def ::expiration (s/nilable number?))
+
+(s/def :eulalie.creds/map
+  (s/keys :req-un [::access-key ::secret-key]
+          :opt-un [::token ::expiration]))
 
 (defn env
   "Construct a credentials map from the AWS SDK's conventional environment
@@ -33,7 +43,7 @@
         :access-key access-key}
        :token (not-empty (platform/env :AWS_SESSION_TOKEN))))))
 
-(s/fdef env :ret :eulalie.creds/map)
+(s/fdef env :ret ::map)
 
 (defprotocol Credentials
   (refresh! [this] "Return a promise resolving to a credentials map.")
@@ -49,8 +59,6 @@
     false)
   (resolve [this]
     this))
-
-(s/def ::credentials #(satisfies? % Credentials))
 
 (defrecord ExpiringCredentials [threshold creds refresh!]
   Credentials
@@ -68,6 +76,10 @@
 (defn ^:no-doc expiring [threshold refresh!]
   (->ExpiringCredentials threshold (atom {}) refresh!))
 
+(s/def ::credentials
+  (s/with-gen #(satisfies? Credentials %)
+    #(s/gen ::map)))
+
 (defn instance
   "Immediately return an on-demand [[Credentials]] provider which'll retrieve
   and automatically refresh either the default IAM credentials associated with
@@ -84,4 +96,7 @@
   []
   (or (env) (instance)))
 
-(s/fdef default :ret (s/or :map ::map :credentials ::credentials))
+(s/def :eulalie/creds
+  (s/or :map ::map :credentials ::credentials))
+
+(s/fdef default :ret :eulalie/creds)

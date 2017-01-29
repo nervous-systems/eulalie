@@ -2,7 +2,7 @@
   (:require [eulalie.impl.util :as util]
             [clojure.string :as str]))
 
-(def DEFAULT-REGION "us-east-1")
+(def DEFAULT-REGION :us-east-1)
 
 (defn sanitize-creds [m]
   (into {}

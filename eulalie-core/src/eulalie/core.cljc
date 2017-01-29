@@ -3,112 +3,122 @@
   issuing them as HTTP requests to AWS.  The majority of this work is done by
   delegating to service-specific functionality (see [[eulalie.service]]).
 
-  Request maps are required to have keys:
-
-  - `:service` (keyword), used for method dispatch in [[eulalie.service]].  The
-  namespace containing the appropriate method definitions must be loaded, even
-  if not used directly.  Bare service names (e.g. `:dynamo`) will be
-  namespaced (`:eulalie.service/dynamo`).
-
-  Optional keys used to override the service's defaults:
-
-  - `:creds` (map or [[eulalie.creds/Credentials]] implementation), defaulting
-  to [[eulalie.creds/default]].
-  - `:max-retries` (number), maximum number of times a request will be replayed
-  if the remote service returns a retryable error
-.
-  - `:endpoint` (`cemerick.url/url`) identifies the remote service endpoint,
-  Will override both the value specified in `:creds`, if any, and the service's
-  default endpoint.
-  - `:region` (keyword), overrides both the region specified in `:creds`, if
-  any, and the service's default region (likely `:us-east-1`).
-  - `:method` (keyword) HTTP method.
-
-  Depending on the specifics of the service implementation, `:target` (keyword)
-  may be used to identify a remote operation, and `:body` may be used to
-  communicate parameters, however this is only convention."
+  Requests are described by the `:eulalie/request` spec, and responses by
+  `:eulalie/response`.  The request's `:eulalie.request/service` keyword used
+  for method dispatch in [[eulalie.service]].  The namespace containing the
+  appropriate method definitions must be loaded, even if not used directly."
   (:require [eulalie.service       :as service]
             [eulalie.impl.platform :as platform]
             [eulalie.impl.service  :as service-util]
             [eulalie.creds         :as creds]
-            [taoensso.timbre :as log]
-            [promesa.core    :as p]
-            [kvlt.util :refer [pprint-str]]))
+            [taoensso.timbre       :as log]
+            [promesa.core          :as p]
+            [kvlt.util :refer [pprint-str]]
+            [eulalie.request]
+            [eulalie.response]
+            [#?(:clj clojure.spec :cljs cljs.spec) :as s]))
 
-(defn- prepare-req [{:keys [endpoint headers] :as req}]
-  (let [req  (-> req
-                 (service-util/default-request (service/defaults (req :service)))
-                 service/prepare-request
-                 (update :endpoint service-util/explicit-port))
-        body (service/transform-request-body req)]
+(defn- prepare-req [req]
+  (let [defaults (service/defaults (req :eulalie.request/service))
+        req      (-> req
+                     (service-util/default-request defaults)
+                     service/prepare-request
+                     (update :eulalie.request/endpoint service-util/explicit-port))
+        body     (service/transform-request-body req)]
     (-> req
-        (assoc :body body)
-        (assoc-in [:headers :content-length] (platform/byte-count body)))))
+        (assoc :eulalie.request/body body)
+        (assoc-in [:eulalie.request/headers :content-length]
+                  (platform/byte-count body)))))
 
-(defn- ok? [{:keys [status]}]
-  (and status (<= 200 status 299)))
+(s/fdef prepare-req
+  :args (s/cat :req :eulalie/request)
+  :ret  :eulalie.request/prepared)
 
-(defn- parse-error [{:keys [headers body] :as resp}]
-  (if (resp :eulalie.error/transport?)
-    {:eulalie.error/status 0 :eulalie.error/type :transport}
-    (service-util/decorate-error
-     (let [e (service-util/headers->error-type headers)]
-       (or (service/transform-response-error
-            (assoc resp :error {:eulalie.error/type e}))
-           {:eulalie.error/type (or e :unrecognized)}))
-     resp)))
+(defn- ok? [{:keys [eulalie.response/status] :as resp}]
+  (and status (<= 200 status 299) (not (resp :eulalie.response/error))))
 
-(defn- handle-result
-  [{aws-resp :response
-    req      :request :as result}]
+(defn- parse-error [{:keys [eulalie.response/headers
+                            eulalie.response/body
+                            eulalie.response/error] :as resp}]
+  (or error
+      (service-util/decorate-error
+       (let [e (service-util/headers->error-type headers)]
+         (or (service/transform-response-error
+              (assoc resp :eulalie.response/error {:eulalie.error/type e}))
+             {:eulalie.error/type (or e :unrecognized)}))
+       resp)))
 
-  (if-not (service-util/response-checksum-ok? aws-resp)
+(s/fdef parse-error
+  :args (s/cat :resp :eulalie/response)
+  :ret  :eulalie/error)
+
+(defn- handle-response [resp]
+  (if-not (service-util/response-checksum-ok? resp)
     [:error {:eulalie.error/type :crc32-mismatch}]
-    (if (ok? aws-resp)
-      [:ok (service/transform-response-body aws-resp)]
-      (let [error (parse-error aws-resp)]
-        (if (and (service-util/retry? (aws-resp :status) error)
-                 (< (req ::retries) (req :max-retries)))
-          [:retry {:timeout (service/request-backoff req (req ::retries) error)
-                   :error   error}]
+    (if (ok? resp)
+      [:ok (assoc resp
+             :eulalie.response/body (service/transform-response-body resp))]
+      (let [error (parse-error resp)
+            req   (resp :eulalie/request)]
+        (if (and (service-util/retry? (resp :eulalie.response/status) error)
+                 (< (req :eulalie.request/retries) (req :eulalie.request/max-retries)))
+          [:retry {::timeout      (service/request-backoff req error)
+                   :eulalie/error error}]
           [:error error])))))
 
-(defn- issue-retrying! [{:keys [creds] :as req}]
-  (p/alet [creds (p/await (if (creds/expired? creds)
-                            (creds/refresh! creds)
-                            (p/resolved (creds/resolve creds))))
-           req   (assoc req :creds creds)
-           req'  (service/sign-request req)]
-    (log/debug "Issuing\n" (pprint-str req'))
-    (p/alet [resp   (p/await (service/issue-request! req'))
-             result {:response (-> resp (dissoc :opts) (assoc :request req))
-                     :request  req'}
-             [label value] (handle-result result)]
+(s/def ::timeout int?)
+
+(s/fdef handle-response
+  :args (s/cat :resp :eulalie/response)
+  :ret  (s/or :ok    (s/cat :tag #{:ok}    :value :eulalie/response)
+              :retry (s/cat :tag #{:retry} :value (s/keys :req [::timeout :eulalie/error]))
+              :error (s/cat :tag #{:error} :value :eulalie/error)))
+
+(defn- with-creds [req]
+  (let [creds (req :eulalie.request/creds)]
+    (if (creds/expired? creds)
+      (-> (creds/refresh! creds)
+          (p/then #(assoc req :eulalie.sign/creds %1)))
+      (p/resolved (assoc req :eulalie.sign/creds (creds/resolve creds))))))
+
+(defn- issue-retrying! [{:keys [eulalie.request/creds] :as req}]
+  (p/alet [req     (p/await (with-creds req))
+           signed  (service/sign-request req)]
+    (log/debug "Issuing\n" (pprint-str signed))
+    (p/alet [resp          (p/await (service/issue-request! signed))
+             [label value] (handle-response resp)]
       (case label
-        :ok    (assoc result :body  value)
+        :ok value
         :error
         (let [{:keys [eulalie.error/type eulalie.error/message]} value]
-          (throw (ex-info (or message (name type)) (merge result value))))
+          (throw (ex-info (or message (name type)) value)))
         :retry
-        (let [{:keys [timeout error]} value]
+        (let [{:keys [::timeout :eulalie/error]} value]
           (log/debug "Retrytable error" error
-                     (str "(retries: " (req ::retries)
-                          ", max: " (req :max-retries) ")" ))
+                     (str "(retries: " (req :eulalie.request/retries)
+                          ", max: " (req :eulalie.request/max-retries) ")" ))
           (p/bind timeout
             (fn [_]
               (let [req (-> req
                             (merge (select-keys error [:eulalie.error/time-offset]))
-                            (update ::retries inc))]
+                            (update :eulalie.request/retries inc))]
                 (issue-retrying! req)))))))))
 
+(s/fdef issue-retrying!
+  :args (s/cat :req :eulalie.request/prepared)
+  :ret  p/promise?)
+
 (defn issue!
-  "Return a promise resolving either to a map having keys `:request`,
-  `:response` and `:body`, or rejected with an `ExceptionInfo`
-  instance (associated with a map having keys `:request`, `:response` and
-  `:error`).
+  "Return a promise resolving to a `:eulalie/response`-compliant map `:body`, or
+  rejected with an `ExceptionInfo` instance (associated with a
+  `:eulalie/error`-compliant map).
 
   The promise will only be rejected if the remote service returns an
   unrecoverable error, is unreachable, or the maximum number of
   retries (service-specific, may be overridden per-request) is exhausted."
   [req]
-  (-> req prepare-req (assoc ::retries 0) issue-retrying!))
+  (-> req prepare-req (assoc :eulalie.request/retries 0) issue-retrying!))
+
+(s/fdef issue!
+  :args (s/cat :req :eulalie/request)
+  :ret  p/promise?)

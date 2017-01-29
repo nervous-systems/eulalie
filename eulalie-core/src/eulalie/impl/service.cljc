@@ -6,7 +6,8 @@
             [eulalie.creds     :as creds]
             [cemerick.url      :as url]
             [camel-snake-kebab.core :as csk :refer [->kebab-case-keyword]]
-            [camel-snake-kebab.extras :refer [transform-keys]]))
+            [camel-snake-kebab.extras :refer [transform-keys]]
+            [#?(:clj clojure.spec :cljs cljs.spec) :as s]))
 
 (def throttling-error?
   #{:throttling
@@ -81,18 +82,25 @@
                 ".amazonaws"
                 (region->tld region))))
 
-(defn default-request [{:keys [creds] :as req} service]
+(defn default-request [{:keys [eulalie.request/creds] :as req} service]
   (let [creds    (or creds (creds/default))
-        region   (some :region   [req creds service {:region DEFAULT-REGION}])
-        endpoint (some :endpoint [req creds service])
+        region   (some :eulalie.request/region
+                       [req service {:eulalie.request/region DEFAULT-REGION}])
+        endpoint (some :eulalie.request/endpoint [req creds service])
         endpoint (or (cond-> endpoint (string? endpoint) url/url)
                      (region->endpoint region service))]
-    (merge service {:creds    creds
-                    :endpoint endpoint
-                    :region   region
-                    :method   :post} req)))
+    (merge service #:eulalie.request{:creds    creds
+                                     :endpoint endpoint
+                                     :region   region
+                                     :method   :post} req)))
 
-(defn response-checksum-ok? [{:keys [headers body]}]
+(s/fdef default-request
+  :args (s/cat :req :eulalie/request :service map?)
+  :ret  :eulalie.request/prepared)
+
+(defn response-checksum-ok?
+  [{:keys [eulalie.response/headers
+           eulalie.response/body]}]
   (let [crc (some-> headers :x-amz-crc32 #? (:clj Long/parseLong :cljs js/parseInt))]
     (or (not crc)
         (= (:content-encoding headers) "gzip")

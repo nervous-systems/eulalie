@@ -1,18 +1,31 @@
 (ns eulalie.core-test
-  (:require [eulalie.core       :as eulalie]
+  (:require [eulalie.request]
+            [eulalie.core       :as eulalie]
             [cemerick.url       :as url]
             [eulalie.service    :as service]
             [promesa-check.util :as util]
             [promesa.core       :as p]
             #?(:clj  [clojure.test :as t]
-               :cljs [cljs.test :as t :include-macros true])))
+               :cljs [cljs.test :as t :include-macros true])
+            [#?(:clj clojure.spec.test :cljs cljs.spec.test) :as stest]
+            [#?(:clj clojure.spec :cljs cljs.spec) :as s]))
+
+(stest/instrument)
 
 (taoensso.timbre/merge-config! {:level :warn})
 
 (defmethod service/defaults :eulalie.service/test-service [_]
-  {:method               :post
-   :max-retries          3
-   :eulalie.sign/service "testservice"})
+  {:eulalie.request/method       :post
+   :eulalie.request/max-retries  3
+   :eulalie.sign/service         "testservice"})
+
+(defmethod service/transform-request-body :eulalie.service/test-service [req]
+  (req :eulalie.service.test-service/body))
+
+(s/def :eulalie.service.test-service/body any?)
+
+(defmethod eulalie.request/service->spec :eulalie.service/test-service [_]
+  (s/keys :req [:eulalie.service.test-service/body]))
 
 (defmethod service/sign-request
   :eulalie.service/test-service [req] req)
@@ -20,39 +33,54 @@
 (defn- issue! [& [m]]
   (eulalie/issue!
    (merge
-    {:endpoint (url/url "http://eulalie.invalid")
-     :body     ""
-     :creds    {}
-     :service  :test-service} m)))
+    #:eulalie.request{:endpoint (url/url "http://eulalie.invalid")
+                      :target   :any
+                      :service  :eulalie.service/test-service
+                      :creds    {:access-key "" :secret-key ""}
+                      :eulalie.service.test-service/body ""}
+    m)))
+
+(defn error [{:keys [status type req] :or {status 0 type :transport}}]
+  {:eulalie.response/status status
+   :eulalie.response/error  {:eulalie.error/type type
+                             :eulalie/request    req}
+   :eulalie/request         req})
+
+(defn ok [{:keys [req status body] :or {status 200 body ""}}]
+  #:eulalie.response{:body            body
+                     :status          status
+                     :headers         {}
+                     :eulalie/request req})
 
 (util/deftest no-retries
   (defmethod service/issue-request! :eulalie.service/test-service [req]
-    (p/resolved {:status 0 :eulalie.error/transport? true}))
+    (p/resolved (error {:req req})))
 
-  (p/alet [[tag e] (p/await (-> (issue! {:max-retries 0})
+  (p/alet [[tag e] (p/await (-> (issue! {:eulalie.request/max-retries 0})
                                 (p/branch
                                   (fn [m] [:ok m])
                                   (fn [e] [:error e]))))]
-    (t/is (= tag :error))
-    (t/is (= :transport (-> e ex-data :eulalie.error/type)))
-    (t/is (zero? (-> e ex-data :request :eulalie.core/retries)))))
+    (t/is (zero? (-> e ex-data :eulalie/request :eulalie.request/retries)))
+    (when-not (= :transport (-> e ex-data :eulalie.error/type))
+      (throw e))))
 
 (util/deftest retry
   (let [reqs (atom 0)]
     (defmethod service/issue-request! :eulalie.service/test-service [req]
-      (let [reqs (swap! reqs inc)]
-        (p/resolved {:status (if (= 1 reqs) 500 200)})))
-
-    (p/alet [resp (p/await (issue! {:max-retries 1}))]
+      (p/resolved (if (= 1 (swap! reqs inc))
+                    (error {:req req :status 500 :type :http})
+                    (ok    {:req req}))))
+    (p/alet [resp (p/await (issue! {:eulalie.request/max-retries 1}))]
       (t/is (= 2 @reqs))
-      (t/is (= 200 (-> resp :response :status)))
-      (t/is (not (resp :error))))))
+      (t/is (= 200 (-> resp :eulalie.response/status)))
+      (t/is (not (resp :eulalie.error/type))))))
 
 (util/deftest success
   (defmethod service/issue-request! :eulalie.service/test-service [req]
-    (p/resolved {:status 200 :body ::impenetrable}))
+    (p/resolved (ok {:req req :body ::impenetrable})))
 
   (p/alet [resp (p/await (issue!))]
-    (t/is (= ::impenetrable (resp :body)))
-    (t/is (= 200 (-> resp :response :status)))
-    (t/is (not (resp :error)))))
+    (t/is (= ::impenetrable (resp :eulalie.response/body)))
+    (t/is (= 200 (resp :eulalie.response/status)))
+    (t/is (zero? (-> resp :eulalie/request :eulalie.request/retries)))
+    (t/is (not (resp :eulalie.error/type)))))
