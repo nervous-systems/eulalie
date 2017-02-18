@@ -1,7 +1,7 @@
 (defproject io.nervous/eulalie-container "0.1.0-SNAPSHOT"
   :description "Asynchronous, pure-Clojure AWS client"
   :profiles    {:dev {:dependencies [[io.nervous/codox-nervous-theme "0.1.0"]
-                                     [io.nervous/promesa-check "0.1.0"]]}}
+                                     [io.nervous/promesa-check "0.1.1-SNAPSHOT"]]}}
   :modules
   {:inherited
    {:dependencies

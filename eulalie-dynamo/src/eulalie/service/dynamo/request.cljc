@@ -15,7 +15,7 @@
     #(or (string? %) (keyword? %))
     gen/keyword))
 
-(defmulti body->spec ::target)
+(defmulti req->spec :eulalie.service.dynamo/target)
 
 (s/def ::projection-expression (s/coll-of ::string-like :gen-max 3))
 
@@ -85,7 +85,7 @@
 (s/def :eulalie.service.dynamo.request.target/batch-get-item
   (s/keys :req-un [:eulalie.service.dynamo.request.batch-get-item/request-items]
           :opt-un [::return-consumed-capacity]))
-(defmethod body->spec :batch-get-item [_]
+(defmethod req->spec :batch-get-item [_]
   :eulalie.service.dynamo.request.target/batch-get-item)
 
 (s/def ::return-item-collection-metrics (enum :SIZE :NONE))
@@ -109,7 +109,7 @@
   (s/keys :req-un [:eulalie.service.dynamo.request.batch-write-item/request-items]
           :opt-un [::return-consumed-capacity
                    ::return-item-collection-metrics]))
-(defmethod body->spec :batch-write-item [_]
+(defmethod req->spec :batch-write-item [_]
   :eulalie.service.dynamo.request.target/batch-write-item)
 
 (s/def ::attribute-name ::attr-name)
@@ -159,7 +159,7 @@
           :opt-un [::global-secondary-indexes
                    ::local-secondary-indexes
                    ::stream-specification]))
-(defmethod body->spec :create-table [_]
+(defmethod req->spec :create-table [_]
   :eulalie.service.dynamo.request.target/create-table)
 
 (s/def ::condition-expression string?)
@@ -182,26 +182,26 @@
                        :eulalie.service.dynamo.request.delete-item/return-values])
       (s/merge ::write-opts)))
 
-(defmethod body->spec :delete-item [_]
+(defmethod req->spec :delete-item [_]
   :eulalie.service.dynamo.request.target/delete-item)
 
 (s/def :eulalie.service.dynamo.request.target/delete-table
   (s/keys :req-un [::table-name]))
 
-(defmethod body->spec :delete-table [_]
+(defmethod req->spec :delete-table [_]
   :eulalie.service.dynamo.request.target/delete-table)
 
 (s/def :eulalie.service.dynamo.request.target/describe-limits
   (s/with-gen (s/nilable map?)
     #(gen/return nil)))
 
-(defmethod body->spec :describe-limits [_]
+(defmethod req->spec :describe-limits [_]
   :eulalie.service.dynamo.request.target/describe-limits)
 
 (s/def :eulalie.service.dynamo.request.target/describe-table
   (s/keys :req-un [::table-name]))
 
-(defmethod body->spec :describe-table [_]
+(defmethod req->spec :describe-table [_]
   :eulalie.service.dynamo.request.target/describe-table)
 
 (s/def :eulalie.service.dynamo.request.target/get-item
@@ -211,7 +211,7 @@
                    ::projection-expression
                    ::return-consumed-capacity]))
 
-(defmethod body->spec :get-item [_]
+(defmethod req->spec :get-item [_]
   :eulalie.service.dynamo.request.target/get-item)
 
 (s/def ::exclusive-start-table-name ::table-name)
@@ -221,7 +221,7 @@
   (-> (s/keys :opt-un [::exclusive-start-table-name ::limit])
       s/nilable))
 
-(defmethod body->spec :list-tables [_]
+(defmethod req->spec :list-tables [_]
   :eulalie.service.dynamo.request.target/list-tables)
 
 (s/def :eulalie.service.dynamo.request.put-item/return-values (enum :NONE :ALL_OLD))
@@ -234,7 +234,7 @@
                        :eulalie.service.dynamo.request.put-item/return-values])
       (s/merge ::write-opts)))
 
-(defmethod body->spec :put-item [_]
+(defmethod req->spec :put-item [_]
   :eulalie.service.dynamo.request.target/put-item)
 
 (s/def ::scan-index-forward       boolean?)
@@ -263,7 +263,7 @@
                        ::scan-index-forward])
       (s/merge ::query-like-opts)))
 
-(defmethod body->spec :query [_]
+(defmethod req->spec :query [_]
   :eulalie.service.dynamo.request.target/query)
 
 (s/def ::segment        (s/int-in 0 999999))
@@ -274,7 +274,7 @@
               :opt-un [::segment ::select ::total-segments])
       (s/merge ::query-like-opts)))
 
-(defmethod body->spec :scan [_]
+(defmethod req->spec :scan [_]
   :eulalie.service.dynamo.request.target/scan)
 
 (s/def :eulalie.service.dynamo.request.update-item/return-values
@@ -289,7 +289,7 @@
                        ::update-expression])
       (s/merge ::write-opts)))
 
-(defmethod body->spec :update-item [_]
+(defmethod req->spec :update-item [_]
   :eulalie.service.dynamo.request.target/update-item)
 
 (s/def ::create ::global-secondary-index)
@@ -311,8 +311,8 @@
                    ::provisioned-throughput
                    ::stream-specification]))
 
-(defmethod body->spec :update-table [_]
+(defmethod req->spec :update-table [_]
   :eulalie.service.dynamo.request.target/update-table)
 
-(s/def :eulalie.service.dynamo/request
-  (s/multi-spec body->spec ::target))
+(s/def :eulalie.service.dynamo.request/body
+  (s/multi-spec req->spec :eulalie.service.dynamo/target))

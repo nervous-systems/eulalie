@@ -2,6 +2,8 @@
   (:require [clojure.string :as str]
             [camel-snake-kebab.core :as csk]))
 
+;; this is weird, old, working
+
 (defn- fmap [f x]
   (cond
     (map?  x) (into (empty x) (for [[k v] x] [k (f v)]))
@@ -20,7 +22,7 @@
 
 (defn- transform [cont keyf key->type types m]
   (into {}
-    (for [[k v] m]
+    (for [[k v] m :when (not (namespace k))]
       [(keyf k)
        (let [type (key->type k)]
          (cond

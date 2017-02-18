@@ -4,7 +4,6 @@
             [eulalie.creds]))
 
 (s/def ::retries     int?)
-(s/def ::target      keyword?)
 (s/def ::max-retries int?)
 (s/def ::creds       :eulalie/creds)
 (s/def ::service     keyword?)
@@ -14,7 +13,7 @@
 (s/def ::date        number?)
 
 (s/def ::base
-  (s/keys :req [::service ::target]
+  (s/keys :req [::service]
           :opt [::creds ::retries ::max-retries ::region ::endpoint ::method ::date]))
 
 (s/def ::headers (s/map-of keyword? any?))
@@ -23,7 +22,7 @@
 (s/def :eulalie.sign/creds   :eulalie.creds/map)
 
 (s/def ::prepared
-  (s/keys :req [::service :eulalie.sign/service ::target ::max-retries ::method
+  (s/keys :req [::service :eulalie.sign/service ::max-retries ::method
                 ::endpoint ::headers]
           :opt [::date]))
 
@@ -35,7 +34,7 @@
 (s/def ::x-amz-content-sha256 string?)
 
 (s/def :eulalie.request.signed/headers
-  (s/or :aws4 (s/keys :req [::authorization ::x-amz-content-sha256])))
+  (s/or :aws4 (s/keys :req-un [::authorization ::x-amz-content-sha256])))
 
 (s/def ::signed
   (-> (s/keys :req [:eulalie.request.signed/headers])
@@ -44,5 +43,5 @@
 (defmulti service->spec ::service)
 
 (s/def :eulalie/request
-  (-> (s/multi-spec service->spec ::service)
-      (s/merge ::base)))
+  (->> (s/multi-spec service->spec ::service)
+       (s/merge ::base)))
