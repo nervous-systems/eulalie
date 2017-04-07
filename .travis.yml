@@ -10,9 +10,9 @@ env:
     - CHROME_BIN=chromium-browser
     - DISPLAY=:99.0
 before_install:
+  - pip install --user awscli
+  - export PATH=$(pwd):$PATH
   - nvm install 5
   - npm install -g karma karma-cli karma-chrome-launcher karma-firefox-launcher karma-cljs-test
   - sh -e /etc/init.d/xvfb start
-  - wget https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein -O /usr/local/bin/lein
-  - chmod +x /usr/local/bin/lein
 script: bin/travis.sh
