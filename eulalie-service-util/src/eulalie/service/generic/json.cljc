@@ -10,12 +10,11 @@
 
 (defn- req-target [req]
   (let [service    (-> req :eulalie.request/service name)
-        service-ns (str "eulalie.service." service)]
-    (str (req :eulalie.service.json/target-prefix)
-         (csk/->PascalCaseString
-          ;; This is probably too specific a convention
-          (get-in req [(keyword (str service-ns ".request") "body")
-                       (keyword (str service-ns) "target")])))))
+        service-ns (str "eulalie." service)
+        target     (get-in req [(keyword (str service-ns ".request") "body")
+                                (keyword service-ns "target")])]
+    (str (req :eulalie.json/target-prefix)
+         (csk/->PascalCaseString target))))
 
 (defn body->error [body service]
   (when-let [t (some-> (body :__type)
@@ -33,7 +32,8 @@
 (defmethod service/prepare-request ::request [req]
   (-> req
       (dissoc :eulalie.service.json/target-prefix)
-      (update :eulalie.request/headers merge
+      (update :eulalie.request/headers
+              merge
               {:content-type "application/x-amz-json-1.0"
                :x-amz-target (req-target req)})))
 

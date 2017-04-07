@@ -13,8 +13,7 @@
     :codox   {:metadata   {:doc/format :markdown}
               :namespaces [#"^eulalie\.(?!impl)"]
               :themes     [:default [:nervous {:nervous/github "https://github.com/nervous-systems/eulalie"}]]}
-    :plugins [[lein-npm       "0.6.2"]
-              [lein-doo       "0.1.7"]
+    :plugins [[lein-doo       "0.1.7"]
               [lein-codox     "0.10.2"]
               [lein-cljsbuild "1.1.5"]]
     :cljsbuild

@@ -1,4 +1,4 @@
-(ns ^:no-doc eulalie.service.dynamo.impl.key-types)
+(ns ^:no-doc eulalie.dynamo.impl.key-types)
 
 (def ^:private attr-keys
   #{:unprocessed-keys :attribute-updates :key-conditions

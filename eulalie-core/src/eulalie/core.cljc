@@ -74,14 +74,8 @@
               :retry (s/cat :tag #{:retry} :value (s/keys :req [::timeout :eulalie/error]))
               :error (s/cat :tag #{:error} :value :eulalie/error)))
 
-(defn- assert-explicit-creds [creds]
-  #?(:cljs
-     (when (and (not creds) (not= cljs.core/*target* "nodejs"))
-       (throw (ex-info ":eulalie.request/creds required in non-Node cljs")))))
-
 (defn- with-creds [req]
   (let [creds (req :eulalie.request/creds)]
-    (assert-explicit-creds creds)
     (if (creds/expired? creds)
       (-> (creds/refresh! creds)
           (p/then #(assoc req :eulalie.sign/creds %1)))
