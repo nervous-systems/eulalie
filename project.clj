@@ -10,7 +10,7 @@
    [org.clojure/core.async     "0.2.395"]
 
    [io.nervous/glossop         "0.2.1"]
-   [prismatic/plumbing         "0.5.3"]
+   [prismatic/plumbing         "0.5.5"]
 
    [camel-snake-kebab          "0.4.0"]
 
